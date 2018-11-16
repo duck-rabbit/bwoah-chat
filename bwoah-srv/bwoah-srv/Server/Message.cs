@@ -23,7 +23,7 @@ namespace bwoah_srv.Server
 
         public override String ToString()
         {
-            return String.Format("{0} {1}: {2}", ReceivedTime.ToShortTimeString(), User, Content);
+            return String.Format("{0} {1}: {2}", ReceivedTime.ToLongTimeString(), User, Content);
         }
     }
 }

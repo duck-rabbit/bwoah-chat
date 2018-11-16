@@ -67,6 +67,8 @@ namespace bwoah_srv.Server
             Socket listener = (Socket)asyncResult.AsyncState;
             Socket socket = listener.EndAccept(asyncResult);
 
+            Console.WriteLine("User {0} connected from {1}.", ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), socket.RemoteEndPoint.ToString());
+
             SocketState socketState = new SocketState(socket);
             socket.BeginReceive(socketState.buffer, 0, SocketState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), socketState);
         }
@@ -81,15 +83,20 @@ namespace bwoah_srv.Server
             if (dataLength > 0)
             {
                 state.StringBuilder.Append(Encoding.ASCII.GetString(state.buffer, 0, dataLength));
+
+                Message readMessage = state.AssembleMessage();
+                Console.WriteLine(readMessage);
+
+                state = new SocketState(handler);
+ 
                 handler.BeginReceive(state.buffer, 0, SocketState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), state);
             }
             else
             {
-                if (state.StringBuilder.Length > 1)
-                {
-                    Message readMessage = state.AssembleMessage();
-                    Console.WriteLine(readMessage);
-                }
+                Console.WriteLine("User {0} disconnected from {1}.", ((IPEndPoint)handler.RemoteEndPoint).Address.ToString(), handler.RemoteEndPoint.ToString());
+
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
             }
         }
 
