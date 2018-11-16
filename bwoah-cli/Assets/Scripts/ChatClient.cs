@@ -85,7 +85,7 @@ public class ChatClient : UnitySingleton<ChatClient>
 
     public void SendMessageToServer(String message)
     {
-        byte[] byteData = Encoding.ASCII.GetBytes(message);
+        byte[] byteData = { 0, 200 };//Encoding.ASCII.GetBytes(message);
 
         _clientSocket.BeginSend(byteData, 0, byteData.Length, (SocketFlags)SOCKET_FLAGS, new AsyncCallback(SendMessageToServerCallback), _clientSocket);
     }

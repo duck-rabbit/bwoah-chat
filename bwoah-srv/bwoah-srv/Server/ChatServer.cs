@@ -4,8 +4,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Linq;
-using bwoah_srv.Utils;
 using System.Text;
+using System.Collections.Concurrent;
+using bwoah_parser.Utils;
+using bwoah_parser;
 
 namespace bwoah_srv.Server
 {
@@ -20,6 +22,8 @@ namespace bwoah_srv.Server
         public static int SOCKET_FLAGS = 0;
 
         private IPEndPoint _localEndPoint;
+
+        ConcurrentDictionary<IPEndPoint, String> _clientsNickDictionary = new ConcurrentDictionary<IPEndPoint, string>();
 
         ManualResetEvent _doneListening = new ManualResetEvent(false);
 
@@ -69,27 +73,24 @@ namespace bwoah_srv.Server
 
             Console.WriteLine("User {0} connected from {1}.", ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), socket.RemoteEndPoint.ToString());
 
-            SocketState socketState = new SocketState(socket);
-            socket.BeginReceive(socketState.buffer, 0, SocketState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), socketState);
+            RecievedState socketState = new RecievedState(socket);
+            socket.BeginReceive(socketState.buffer, 0, RecievedState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), socketState);
         }
 
         private void ReadCallback(IAsyncResult asyncResult)
         {
-            SocketState state = (SocketState)asyncResult.AsyncState;
-            Socket handler = state.CurrentSocket;
+            RecievedState state = (RecievedState)asyncResult.AsyncState;
+            Socket handler = state.NetSocket;
 
             int dataLength = handler.EndReceive(asyncResult); 
 
             if (dataLength > 0)
             {
-                state.StringBuilder.Append(Encoding.ASCII.GetString(state.buffer, 0, dataLength));
+                state.HandleData();
 
-                Message readMessage = state.AssembleMessage();
-                Console.WriteLine(readMessage);
-
-                state = new SocketState(handler);
+                state = new RecievedState(handler);
  
-                handler.BeginReceive(state.buffer, 0, SocketState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), state);
+                handler.BeginReceive(state.buffer, 0, RecievedState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), state);
             }
             else
             {
