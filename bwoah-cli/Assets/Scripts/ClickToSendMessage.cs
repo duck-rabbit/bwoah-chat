@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using bwoah_cli;
+using bwoah_shared.DataClasses;
 
-public class ClickToSend : MonoBehaviour
+public class ClickToSendMessage : MonoBehaviour
 {
     [SerializeField] InputField _chatInput;
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Return))
+        if (Input.GetKeyDown(KeyCode.Return) && _chatInput.isFocused)
         {
             ClickSendButton();
         }
@@ -19,7 +21,9 @@ public class ClickToSend : MonoBehaviour
     {
         if (!_chatInput.text.Equals(string.Empty))
         {
-            ChatClient.I.SendMessageToServer(_chatInput.text);
+            ClientMessageData messageData = new ClientMessageData();
+            messageData.Message = _chatInput.text;
+            ChatClient.I.SendMessageToServer(messageData);
             _chatInput.text = string.Empty;
         }
     }

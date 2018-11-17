@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace bwoah_parser.Utils
+namespace bwoah_shared.Utils
 {
     /// <summary>
     /// Parent class for singleton design pattern

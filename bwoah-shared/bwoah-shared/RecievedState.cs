@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
-using bwoah_parser.DataClasses;
+using bwoah_shared.DataClasses;
 
-namespace bwoah_parser
+namespace bwoah_shared
 {
     public class RecievedState
     {
@@ -12,19 +12,18 @@ namespace bwoah_parser
 
         public Socket NetSocket { get; set; }
         public byte[] buffer = new byte[BUFFER_SIZE];
+        public IData RecievedData { get; private set; }
 
         public RecievedState(Socket socket)
         {
             NetSocket = socket;
         }
 
-        public IData HandleData()
+        public void HandleData(int dataLength)
         {
-            IData data = DataFactory.Create(buffer[0]);
-            Console.WriteLine(data.GetType().ToString());
-            //data.ParseFromByte(buffer);
-            DataHandler.Instance.HandleData(data);
-            return data;
+            RecievedData = DataFactory.Create(buffer[0]);
+            RecievedData.ParseFromByte(buffer, dataLength);
+            DataHandler.Instance.HandleData(this);
         }
     }
 }

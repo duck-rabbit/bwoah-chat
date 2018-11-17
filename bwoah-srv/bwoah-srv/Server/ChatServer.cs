@@ -6,8 +6,9 @@ using System.Threading;
 using System.Linq;
 using System.Text;
 using System.Collections.Concurrent;
-using bwoah_parser.Utils;
-using bwoah_parser;
+using bwoah_shared.Utils;
+using bwoah_shared;
+using bwoah_shared.DataClasses;
 
 namespace bwoah_srv.Server
 {
@@ -23,9 +24,9 @@ namespace bwoah_srv.Server
 
         private IPEndPoint _localEndPoint;
 
-        ConcurrentDictionary<IPEndPoint, String> _clientsNickDictionary = new ConcurrentDictionary<IPEndPoint, string>();
-
         ManualResetEvent _doneListening = new ManualResetEvent(false);
+
+        Chat _chat = new Chat();
 
         /// <summary>
         /// Start chat server
@@ -36,10 +37,10 @@ namespace bwoah_srv.Server
             {
                 return;
             }
-            
+
             _localEndPoint = new IPEndPoint(INTERFACE_TO_LISTEN, LOCAL_PORT);
 
-            Console.WriteLine(String.Format("Starting Bwoah! Server on {0}", _localEndPoint.ToString()));
+            Console.WriteLine(String.Format("[System] Starting Bwoah! Server on {0}", _localEndPoint.ToString()));
 
             Socket socket = new Socket(_localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -71,7 +72,7 @@ namespace bwoah_srv.Server
             Socket listener = (Socket)asyncResult.AsyncState;
             Socket socket = listener.EndAccept(asyncResult);
 
-            Console.WriteLine("User {0} connected from {1}.", ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), socket.RemoteEndPoint.ToString());
+            _chat.AddUser(socket);
 
             RecievedState socketState = new RecievedState(socket);
             socket.BeginReceive(socketState.buffer, 0, RecievedState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), socketState);
@@ -86,7 +87,7 @@ namespace bwoah_srv.Server
 
             if (dataLength > 0)
             {
-                state.HandleData();
+                state.HandleData(dataLength);
 
                 state = new RecievedState(handler);
  
@@ -94,7 +95,7 @@ namespace bwoah_srv.Server
             }
             else
             {
-                Console.WriteLine("User {0} disconnected from {1}.", ((IPEndPoint)handler.RemoteEndPoint).Address.ToString(), handler.RemoteEndPoint.ToString());
+                _chat.RemoveUser(handler);
 
                 handler.Shutdown(SocketShutdown.Both);
                 handler.Close();

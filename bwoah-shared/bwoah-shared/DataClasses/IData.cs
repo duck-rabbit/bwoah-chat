@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace bwoah_parser.DataClasses
+namespace bwoah_shared.DataClasses
 {
     public interface IData
     { 
-        IData ParseFromByte(byte[] byteStream);
+        IData ParseFromByte(byte[] byteStream, int dataLength);
         byte[] ParseToByte();
     }
 }
