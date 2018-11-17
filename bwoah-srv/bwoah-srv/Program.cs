@@ -8,6 +8,7 @@ namespace bwoah_srv
         static void Main(string[] args)
         {
             ChatServer.Instance.StartServer();
+            Console.ReadKey();
         }
     }
 }

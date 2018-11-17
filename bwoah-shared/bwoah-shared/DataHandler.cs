@@ -9,9 +9,9 @@ namespace bwoah_shared
 {
     public class DataHandler : Singleton<DataHandler>
     {
-        ConcurrentDictionary<Type, Action<RecievedState>> _typeActionPairs = new ConcurrentDictionary<Type, Action<RecievedState>>();
+        ConcurrentDictionary<Type, Action<ReceivedState>> _typeActionPairs = new ConcurrentDictionary<Type, Action<ReceivedState>>();
 
-        public void RegisterAction(Type dataType, Action<RecievedState> action)
+        public void RegisterAction(Type dataType, Action<ReceivedState> action)
         {
             if (!_typeActionPairs.ContainsKey(dataType))
             {
@@ -23,7 +23,7 @@ namespace bwoah_shared
             }
         }
 
-        public void UnregisterAction(Type dataType, Action<RecievedState> action)
+        public void UnregisterAction(Type dataType, Action<ReceivedState> action)
         {
             if (_typeActionPairs.ContainsKey(dataType))
             {
@@ -31,9 +31,9 @@ namespace bwoah_shared
             }
         }
 
-        public void HandleData(RecievedState recievedState)
+        public void HandleData(ReceivedState recievedState)
         {
-            Type dataType = recievedState.RecievedData.GetType();
+            Type dataType = recievedState.ReceivedData.GetType();
             if (_typeActionPairs.ContainsKey(dataType))
             {
                 _typeActionPairs[dataType]?.Invoke(recievedState);

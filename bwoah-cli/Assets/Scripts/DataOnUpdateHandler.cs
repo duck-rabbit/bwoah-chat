@@ -7,7 +7,7 @@ using UnityEngine;
 
 public abstract class DataOnUpdateHandler : MonoBehaviour
 {
-    protected Queue<RecievedState> dataHandleQueue = new Queue<RecievedState>();
+    protected Queue<ReceivedState> dataHandleQueue = new Queue<ReceivedState>();
     protected Type typeToHandle;
 
     protected void OnEnable()
@@ -20,7 +20,6 @@ public abstract class DataOnUpdateHandler : MonoBehaviour
         DataHandler.Instance.UnregisterAction(typeToHandle, HandleDataOnUpdate);
     }
 
-    // Update is called once per frame
     protected void Update ()
     {
         while (dataHandleQueue.Count > 0)
@@ -29,12 +28,12 @@ public abstract class DataOnUpdateHandler : MonoBehaviour
         }
     }
 
-    private void HandleDataOnUpdate(RecievedState recievedState)
+    private void HandleDataOnUpdate(ReceivedState ReceivedState)
     {
-        dataHandleQueue.Enqueue(recievedState);
+        dataHandleQueue.Enqueue(ReceivedState);
     }
 
-    virtual protected void HandleData(RecievedState recievedState)
+    virtual protected void HandleData(ReceivedState ReceivedState)
     {
         
     }

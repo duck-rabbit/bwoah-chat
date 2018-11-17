@@ -23,6 +23,9 @@ namespace bwoah_srv.Server
         public static int SOCKET_FLAGS = 0;
 
         private IPEndPoint _localEndPoint;
+        private Socket _serverSocket;
+
+        private string dafuq = String.Empty;
 
         ManualResetEvent _doneListening = new ManualResetEvent(false);
 
@@ -42,21 +45,14 @@ namespace bwoah_srv.Server
 
             Console.WriteLine(String.Format("[System] Starting Bwoah! Server on {0}", _localEndPoint.ToString()));
 
-            Socket socket = new Socket(_localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            _serverSocket = new Socket(_localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             try
             {
-                socket.Bind(_localEndPoint);
-                socket.Listen(MAX_PENDING_CONNECTIONS);
+                _serverSocket.Bind(_localEndPoint);
+                _serverSocket.Listen(MAX_PENDING_CONNECTIONS);
 
-                while (true)
-                {
-                    _doneListening.Reset();
-
-                    socket.BeginAccept(new AsyncCallback(AcceptCallback), socket);
-
-                    _doneListening.WaitOne();
-                }
+                StartAccept();
             }
             catch (Exception e)
             {
@@ -65,40 +61,47 @@ namespace bwoah_srv.Server
             }
         }
 
+        private void StartAccept()
+        {
+            _serverSocket.BeginAccept(new AsyncCallback(AcceptCallback), _serverSocket);
+        }
+
         private void AcceptCallback(IAsyncResult asyncResult)
         {
-            _doneListening.Set();
+            StartAccept();
 
             Socket listener = (Socket)asyncResult.AsyncState;
             Socket socket = listener.EndAccept(asyncResult);
 
             _chat.AddUser(socket);
 
-            RecievedState socketState = new RecievedState(socket);
-            socket.BeginReceive(socketState.buffer, 0, RecievedState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), socketState);
+            StartReceiveData(socket);
         }
 
-        private void ReadCallback(IAsyncResult asyncResult)
+        private void StartReceiveData(Socket socket)
         {
-            RecievedState state = (RecievedState)asyncResult.AsyncState;
-            Socket handler = state.NetSocket;
+            ReceivedState socketState = new ReceivedState(socket);
+            socket.BeginReceive(socketState.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(ReceiveCallback), socketState);
+        }
 
-            int dataLength = handler.EndReceive(asyncResult); 
+        private void ReceiveCallback(IAsyncResult receivedSocket)
+        {
+            ReceivedState socketState = (ReceivedState)receivedSocket.AsyncState;
+
+            int dataLength = socketState.NetSocket.EndReceive(receivedSocket);
 
             if (dataLength > 0)
             {
-                state.HandleData(dataLength);
+                StartReceiveData(socketState.NetSocket);
 
-                state = new RecievedState(handler);
- 
-                handler.BeginReceive(state.buffer, 0, RecievedState.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), state);
+                socketState.HandleData(dataLength);
             }
             else
             {
-                _chat.RemoveUser(handler);
+                _chat.RemoveUser(socketState.NetSocket);
 
-                handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
+                socketState.NetSocket.Shutdown(SocketShutdown.Both);
+                socketState.NetSocket.Close();
             }
         }
 

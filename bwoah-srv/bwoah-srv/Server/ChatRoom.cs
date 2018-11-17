@@ -14,9 +14,9 @@ namespace bwoah_srv.Server
     class ChatRoom
     {
         public int Id { get; private set; }
-        public List<ChatUser> UserList { get; private set; }
+        public ConcurrentDictionary<Socket, ChatUser> UserList { get; private set; }
 
-        public ChatRoom(int id, List<ChatUser> userList)
+        public ChatRoom(int id, ConcurrentDictionary<Socket, ChatUser> userList)
         {
             Id = id;
             UserList = userList;
@@ -24,7 +24,7 @@ namespace bwoah_srv.Server
 
         public void SendDataToAllUsers(byte[] byteData)
         {
-            foreach (ChatUser user in UserList)
+            foreach (ChatUser user in UserList.Values)
             {
                 user.SendData(byteData);
             }

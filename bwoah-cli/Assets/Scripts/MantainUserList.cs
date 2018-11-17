@@ -32,9 +32,9 @@ public class MantainUserList : DataOnUpdateHandler
         }
     }
 
-    override protected void HandleData(RecievedState recievedState)
+    override protected void HandleData(ReceivedState ReceivedState)
     {
-        NicknameListData messageData = (NicknameListData)recievedState.RecievedData;
+        NicknameListData messageData = (NicknameListData)ReceivedState.ReceivedData;
 
         foreach (string nickname in messageData.UserNicknames)
         {

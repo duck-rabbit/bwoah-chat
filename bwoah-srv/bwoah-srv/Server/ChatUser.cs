@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace bwoah_srv.Server
@@ -13,7 +14,9 @@ namespace bwoah_srv.Server
     {
         public Socket UserSocket { get; private set; }
 
-        private String _nickname = String.Empty;
+        public String _nickname = String.Empty;
+        ManualResetEvent _sendUserResetEvent = new ManualResetEvent(false);
+
         public String Nickname
         {
             get { return _nickname; }
@@ -37,13 +40,13 @@ namespace bwoah_srv.Server
         {
             UserSocket = userSocket;
 
-            Console.WriteLine("[System] User connected from {0}.", userSocket.RemoteEndPoint.ToString());
+            //Console.WriteLine("[System] User connected from {0}.", userSocket.RemoteEndPoint.ToString());
         }
 
         public void GenerateByeMessage()
         {
             Console.WriteLine("[System] {0} left the chat", Nickname);
-            Console.WriteLine("[System] User disconnected from {0}.", UserSocket.RemoteEndPoint.ToString());
+            //Console.WriteLine("[System] User disconnected from {0}.", UserSocket.RemoteEndPoint.ToString());
         }
 
         public void SendData(IData data)
@@ -55,6 +58,17 @@ namespace bwoah_srv.Server
 
         public void SendData(byte[] byteData)
         {
+            //Console.WriteLine("FakeSend");
+
+            //try
+            //{
+            //    UserSocket.Send(byteData);
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine("[Exception] {0}", e.ToString());
+            //}
+
             UserSocket.BeginSend(byteData, 0, byteData.Length, (SocketFlags)ChatServer.SOCKET_FLAGS, new AsyncCallback(SendDataCallback), UserSocket);
         }
 

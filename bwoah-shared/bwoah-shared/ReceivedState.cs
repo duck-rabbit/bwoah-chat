@@ -6,23 +6,23 @@ using bwoah_shared.DataClasses;
 
 namespace bwoah_shared
 {
-    public class RecievedState
+    public class ReceivedState
     {
         public const int BUFFER_SIZE = 1024;
 
         public Socket NetSocket { get; set; }
         public byte[] buffer = new byte[BUFFER_SIZE];
-        public IData RecievedData { get; private set; }
+        public IData ReceivedData { get; private set; }
 
-        public RecievedState(Socket socket)
+        public ReceivedState(Socket socket)
         {
             NetSocket = socket;
         }
 
         public void HandleData(int dataLength)
         {
-            RecievedData = DataFactory.Create(buffer[0]);
-            RecievedData.ParseFromByte(buffer, dataLength);
+            ReceivedData = DataFactory.Create(buffer[0]);
+            ReceivedData.ParseFromByte(buffer, dataLength);
             DataHandler.Instance.HandleData(this);
         }
     }

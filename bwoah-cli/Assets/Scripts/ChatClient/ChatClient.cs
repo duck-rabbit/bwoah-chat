@@ -65,8 +65,8 @@ namespace bwoah_cli
 
                 Debug.Log("Connected to server.");
 
-                RecievedState socketState = new RecievedState(_clientSocket);
-                _clientSocket.BeginReceive(socketState.buffer, 0, RecievedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), socketState);
+                ReceivedState socketState = new ReceivedState(_clientSocket);
+                _clientSocket.BeginReceive(socketState.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), socketState);
             }
             catch (Exception e)
             {
@@ -76,7 +76,7 @@ namespace bwoah_cli
 
         public void RecieveCallback(IAsyncResult recieveResult)
         {
-            RecievedState state = (RecievedState)recieveResult.AsyncState;
+            ReceivedState state = (ReceivedState)recieveResult.AsyncState;
             Socket handler = state.NetSocket;
 
             int dataLength = handler.EndReceive(recieveResult);
@@ -85,9 +85,9 @@ namespace bwoah_cli
             {
                 state.HandleData(dataLength);
 
-                state = new RecievedState(handler);
+                state = new ReceivedState(handler);
 
-                handler.BeginReceive(state.buffer, 0, RecievedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), state);
+                handler.BeginReceive(state.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), state);
             }
         }
 

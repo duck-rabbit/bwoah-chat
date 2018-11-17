@@ -15,9 +15,9 @@ public class GenerateChatMessages : DataOnUpdateHandler
         base.OnEnable();
     }
 
-    override protected void HandleData(RecievedState recievedState)
+    override protected void HandleData(ReceivedState ReceivedState)
     {
-        ServerMessageData messageData = (ServerMessageData)recievedState.RecievedData;
+        ServerMessageData messageData = (ServerMessageData)ReceivedState.ReceivedData;
         Message message = Instantiate(messagePrefab, messageContainer);
         message._timeText.text = messageData.Time.ToLocalTime().ToLongTimeString();
         message._nicknameText.text = messageData.UserNickname;
