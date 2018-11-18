@@ -14,30 +14,46 @@ namespace bwoah_srv.Server
     {
         private ConcurrentDictionary<Socket, ChatUser> _userList = new ConcurrentDictionary<Socket, ChatUser>();
 
-        private ChatRoom _openWall;
+        private ChatChannel _openWall;
 
         public Chat()
         {
-            _openWall = new ChatRoom(0, _userList);
+            _openWall = new ChatChannel(0, _userList);
 
             DataHandler.Instance.RegisterAction(typeof(ClientMessageData), HandleClientMessageData);
-            DataHandler.Instance.RegisterAction(typeof(NicknameData), HandleNicknameData);
+            DataHandler.Instance.RegisterAction(typeof(NicknameOperationData), HandleNicknameData);
         }
 
         public void AddUser(Socket userSocket)
         {
             ChatUser newUser = new ChatUser(userSocket);
 
+            NicknameOperationData nicknameOperationData = new NicknameOperationData();
+
+            nicknameOperationData.NicknameOperation = NicknameOperation.Add;
+            nicknameOperationData.NewNickname = "";
+            nicknameOperationData.Time = DateTime.UtcNow;
+
+            _openWall.SendDataToAllUsers(nicknameOperationData.ParseToByte());
+
             _userList.AddOrUpdate(userSocket, newUser, (key, value) => _userList[userSocket]);
 
-            //newUser.SendData(GetNicknameListData(_userList).ParseToByte());
+            newUser.SendData(_openWall.GetChannelData().ParseToByte());
         }
 
         public void RemoveUser(Socket userSocket)
         {
             ChatUser userToRemove = GetUserBySocket(userSocket);
+
+            NicknameOperationData nicknameOperationData = new NicknameOperationData();
+            nicknameOperationData.NicknameOperation = NicknameOperation.Remove;
+            nicknameOperationData.OldNickname = userToRemove.Nickname;
+            nicknameOperationData.Time = DateTime.UtcNow;
+
             userToRemove.GenerateByeMessage();
             _userList.TryRemove(userSocket, out userToRemove);
+
+            _openWall.SendDataToAllUsers(nicknameOperationData.ParseToByte());
         }
 
         public void HandleClientMessageData(ReceivedState receivedState)
@@ -47,7 +63,7 @@ namespace bwoah_srv.Server
 
             Console.WriteLine("[Open Wall] {0}", message.ToString());
 
-            IData data = message.ServerMessageData;
+            AData data = message.ServerMessageData;
             byte[] byteData = data.ParseToByte();
 
             _openWall.SendDataToAllUsers(byteData);
@@ -55,23 +71,19 @@ namespace bwoah_srv.Server
 
         public void HandleNicknameData(ReceivedState recievedState)
         {
-            GetUserBySocket(recievedState.NetSocket).Nickname = ((NicknameData)recievedState.ReceivedData).Nickname;
+            NicknameOperationData nicknameOperationData = (NicknameOperationData)recievedState.ReceivedData;
+
+            nicknameOperationData.OldNickname = GetUserBySocket(recievedState.NetSocket).Nickname;
+            nicknameOperationData.Time = DateTime.UtcNow;
+
+            GetUserBySocket(recievedState.NetSocket).Nickname = nicknameOperationData.NewNickname;
+
+            _openWall.SendDataToAllUsers(nicknameOperationData.ParseToByte());
         }
 
         public ChatUser GetUserBySocket(Socket userSocket)
         {
             return _userList[userSocket];
-        }
-
-        private NicknameListData GetNicknameListData(ConcurrentDictionary<Socket, ChatUser> users)
-        {
-            NicknameListData nicknameData = new NicknameListData();
-            nicknameData.UserNicknames = new List<String>();
-            foreach (ChatUser user in users.Values)
-            {
-                nicknameData.UserNicknames.Add(user.Nickname);
-            }
-            return nicknameData;
         }
     }
 }

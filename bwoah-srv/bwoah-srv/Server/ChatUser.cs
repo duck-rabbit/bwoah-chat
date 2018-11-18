@@ -49,7 +49,7 @@ namespace bwoah_srv.Server
             //Console.WriteLine("[System] User disconnected from {0}.", UserSocket.RemoteEndPoint.ToString());
         }
 
-        public void SendData(IData data)
+        public void SendData(AData data)
         {
             byte[] byteData = data.ParseToByte();
 

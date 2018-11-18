@@ -23,6 +23,8 @@ public class ClickToSendMessage : MonoBehaviour
         {
             ClientMessageData messageData = new ClientMessageData();
             messageData.Message = _chatInput.text;
+            messageData.ChannelId = 0;
+            Debug.Log(messageData.ParseToJson());
             ChatClient.I.SendMessageToServer(messageData);
             _chatInput.text = string.Empty;
         }

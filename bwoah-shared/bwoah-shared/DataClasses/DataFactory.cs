@@ -6,9 +6,9 @@ namespace bwoah_shared.DataClasses
 {
     class DataFactory
     {
-        public static IData Create(byte dataTypeId)
+        public static AData Create(byte dataTypeId)
         {
-            return (IData)Activator.CreateInstance(DataTypeIds.GetTypeById(dataTypeId));
+            return (AData)Activator.CreateInstance(DataTypeIds.GetTypeById(dataTypeId));
         }
     }
 }

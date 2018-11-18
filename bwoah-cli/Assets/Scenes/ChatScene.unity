@@ -2762,9 +2762,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   userPrefab: {fileID: 114269123090562984, guid: 51d078a191de7a4438ed6a6823812d4d,
     type: 2}
+  systemMessagePrefab: {fileID: 114578440803063044, guid: 6ddee284d5c82c2489d67f48eac8f22f,
+    type: 2}
   userContainer: {fileID: 461434279}
+  messageContainer: {fileID: 862858415}
   _nicknameInput: {fileID: 879355710}
-  _unknownUserColor: {r: 0, g: 0, b: 0, a: 0}
+  _unknownUserColor: {r: 0.5882353, g: 0.5882353, b: 0.5882353, a: 1}
 --- !u!1 &2104793451
 GameObject:
   m_ObjectHideFlags: 0

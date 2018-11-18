@@ -23,9 +23,8 @@ namespace bwoah_shared.DataClasses
         {
             new DataTypeId(0, typeof(ClientMessageData)),
             new DataTypeId(1, typeof(ServerMessageData)),
-            new DataTypeId(8, typeof(NicknameData)),
-            new DataTypeId(9, typeof(NicknameListData)),
-            new DataTypeId(10, typeof(NicknameListOperationData))
+            new DataTypeId(8, typeof(ChannelData)),
+            new DataTypeId(16, typeof(NicknameOperationData))
         };
 
         public static byte GetIdByType(Type type)

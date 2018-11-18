@@ -65,13 +65,18 @@ namespace bwoah_cli
 
                 Debug.Log("Connected to server.");
 
-                ReceivedState socketState = new ReceivedState(_clientSocket);
-                _clientSocket.BeginReceive(socketState.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), socketState);
+                BeginReceive();
             }
             catch (Exception e)
             {
                 Debug.LogError(String.Format("Unexpected exception : {0}", e.ToString()));
             }
+        }
+
+        public void BeginReceive()
+        {
+            ReceivedState socketState = new ReceivedState(_clientSocket);
+            _clientSocket.BeginReceive(socketState.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), socketState);
         }
 
         public void RecieveCallback(IAsyncResult recieveResult)
@@ -81,13 +86,11 @@ namespace bwoah_cli
 
             int dataLength = handler.EndReceive(recieveResult);
 
+            BeginReceive();
+
             if (dataLength > 0)
-            {
+            { 
                 state.HandleData(dataLength);
-
-                state = new ReceivedState(handler);
-
-                handler.BeginReceive(state.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), state);
             }
         }
 
@@ -105,7 +108,7 @@ namespace bwoah_cli
             }
         }
 
-        public void SendMessageToServer(IData message)
+        public void SendMessageToServer(AData message)
         {
             byte[] byteData = message.ParseToByte();
 

@@ -12,7 +12,7 @@ namespace bwoah_shared
 
         public Socket NetSocket { get; set; }
         public byte[] buffer = new byte[BUFFER_SIZE];
-        public IData ReceivedData { get; private set; }
+        public AData ReceivedData { get; private set; }
 
         public ReceivedState(Socket socket)
         {
@@ -22,7 +22,7 @@ namespace bwoah_shared
         public void HandleData(int dataLength)
         {
             ReceivedData = DataFactory.Create(buffer[0]);
-            ReceivedData.ParseFromByte(buffer, dataLength);
+            ReceivedData = ReceivedData.ParseFromByte(buffer);
             DataHandler.Instance.HandleData(this);
         }
     }

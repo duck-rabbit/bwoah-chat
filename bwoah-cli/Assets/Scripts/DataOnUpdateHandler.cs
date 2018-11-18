@@ -30,6 +30,7 @@ public abstract class DataOnUpdateHandler : MonoBehaviour
 
     private void HandleDataOnUpdate(ReceivedState ReceivedState)
     {
+        Debug.Log("Received data asynchronically!");
         dataHandleQueue.Enqueue(ReceivedState);
     }
 
