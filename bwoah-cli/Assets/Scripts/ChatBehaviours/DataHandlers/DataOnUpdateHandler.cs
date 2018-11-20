@@ -3,11 +3,12 @@ using bwoah_shared.DataClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using UnityEngine;
 
 public abstract class DataOnUpdateHandler : MonoBehaviour
 {
-    protected Queue<ReceivedState> dataHandleQueue = new Queue<ReceivedState>();
+    protected Queue<AData> dataHandleQueue = new Queue<AData>();
     protected Type typeToHandle;
 
     protected void OnEnable()
@@ -28,13 +29,13 @@ public abstract class DataOnUpdateHandler : MonoBehaviour
         }
     }
 
-    private void HandleDataOnUpdate(ReceivedState ReceivedState)
+    private void HandleDataOnUpdate(AData data, Socket socket)
     {
         Debug.Log("Received data asynchronically!");
-        dataHandleQueue.Enqueue(ReceivedState);
+        dataHandleQueue.Enqueue(data);
     }
 
-    virtual protected void HandleData(ReceivedState ReceivedState)
+    virtual protected void HandleData(AData data)
     {
         
     }

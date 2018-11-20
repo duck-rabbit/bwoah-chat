@@ -21,10 +21,10 @@ namespace bwoah_shared.DataClasses
     {
         public static readonly List<DataTypeId> dataTypeIds = new List<DataTypeId>
         {
-            new DataTypeId(0, typeof(ClientMessageData)),
-            new DataTypeId(1, typeof(ServerMessageData)),
-            new DataTypeId(8, typeof(ChannelData)),
-            new DataTypeId(16, typeof(NicknameOperationData))
+            new DataTypeId(0, typeof(ChatMessageData)),
+            new DataTypeId(1, typeof(NewUserData)),
+            new DataTypeId(2, typeof(ChannelData)),
+            new DataTypeId(3, typeof(NicknameOperationsData)),
         };
 
         public static byte GetIdByType(Type type)

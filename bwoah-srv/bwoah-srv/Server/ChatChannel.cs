@@ -13,20 +13,23 @@ namespace bwoah_srv.Server
 {
     class ChatChannel
     {
+        private IServer _server;
+
         public int ChannelId { get; private set; }
         public ConcurrentDictionary<Socket, ChatUser> UserList { get; private set; }
 
-        public ChatChannel(int id, ConcurrentDictionary<Socket, ChatUser> userList)
+        public ChatChannel(IServer server, int id, ConcurrentDictionary<Socket, ChatUser> userList)
         {
+            _server = server;
             ChannelId = id;
             UserList = userList;
         }
 
         public void SendDataToAllUsers(byte[] byteData)
         {
-            foreach (ChatUser user in UserList.Values)
+            foreach (Socket socket in UserList.Keys)
             {
-                user.SendData(byteData);
+                _server.SendData(byteData, socket);
             }
         }
 
@@ -34,15 +37,7 @@ namespace bwoah_srv.Server
         {
             ChannelData channelData = new ChannelData();
             channelData.ChannelId = ChannelId;
-
-            List<String> userNicknames = new List<string>();
-
-            foreach (ChatUser user in UserList.Values)
-            {
-                userNicknames.Add(user.Nickname);
-            }
-
-            channelData.UserNicknames = userNicknames.ToArray();
+            channelData.UserNicknames = UserList.Values.Select(chatUser => chatUser.Nickname).ToArray();
 
             return channelData;
         }

@@ -10,12 +10,13 @@ namespace bwoah_shared.DataClasses
     {
         Add = 0,
         Remove = 1,
-        Alter = 2
+        Change = 2,
+        NickInUse = 3
     }
 
-    public class NicknameOperationData : AData
+    public class NicknameOperationsData : AData
     {
-        public NicknameOperation NicknameOperation { get; set; }
+        public NicknameOperation OperationType { get; set; }
         public DateTime Time { get; set; }
         public string NewNickname { get; set; }
         public string OldNickname { get; set; }

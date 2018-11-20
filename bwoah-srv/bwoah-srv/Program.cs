@@ -7,7 +7,11 @@ namespace bwoah_srv
     {
         static void Main(string[] args)
         {
-            ChatServer.Instance.StartServer();
+            ChatServer chatServer = ChatServer.Instance;
+            Chat chat = new Chat(chatServer);
+
+            chatServer.StartServer();
+
             Console.ReadKey();
         }
     }

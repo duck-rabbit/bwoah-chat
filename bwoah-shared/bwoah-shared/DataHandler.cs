@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Text;
 using bwoah_shared.DataClasses;
 using bwoah_shared.Utils;
@@ -9,9 +10,9 @@ namespace bwoah_shared
 {
     public class DataHandler : Singleton<DataHandler>
     {
-        ConcurrentDictionary<Type, Action<ReceivedState>> _typeActionPairs = new ConcurrentDictionary<Type, Action<ReceivedState>>();
+        ConcurrentDictionary<Type, Action<AData, Socket>> _typeActionPairs = new ConcurrentDictionary<Type, Action<AData, Socket>>();
 
-        public void RegisterAction(Type dataType, Action<ReceivedState> action)
+        public void RegisterAction(Type dataType, Action<AData, Socket> action)
         {
             if (!_typeActionPairs.ContainsKey(dataType))
             {
@@ -23,7 +24,7 @@ namespace bwoah_shared
             }
         }
 
-        public void UnregisterAction(Type dataType, Action<ReceivedState> action)
+        public void UnregisterAction(Type dataType, Action<AData, Socket> action)
         {
             if (_typeActionPairs.ContainsKey(dataType))
             {
@@ -31,12 +32,12 @@ namespace bwoah_shared
             }
         }
 
-        public void HandleData(ReceivedState recievedState)
+        public void HandleData(AData data, Socket socket)
         {
-            Type dataType = recievedState.ReceivedData.GetType();
+            Type dataType = data.GetType();
             if (_typeActionPairs.ContainsKey(dataType))
             {
-                _typeActionPairs[dataType]?.Invoke(recievedState);
+                _typeActionPairs[dataType]?.Invoke(data, socket);
             }
         }
     }

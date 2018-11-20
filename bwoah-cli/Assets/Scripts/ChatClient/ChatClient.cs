@@ -13,35 +13,63 @@ namespace bwoah_cli
 {
     public class ChatClient : UnitySingleton<ChatClient>
     {
-        public static IPAddress IP_ADDRESS = IPAddress.Parse("192.168.0.59");
-        public static int PORT = 13131;
         public static int SOCKET_FLAGS = 0;
-        ManualResetEvent _communicationDone;
+        public static int CONNECTION_CHECK_INTERVAL = 5;
+        public static int RECONNECTION_INTERVAL = 1;
+        public static int RECONNECTION_ATTEMPTS = 2;
 
-        IPEndPoint _serverEndPoint = new IPEndPoint(IP_ADDRESS, 13131);
-        Socket _clientSocket = new Socket(IP_ADDRESS.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+        public Action OnConnectionLost;
+        public Action OnUltimateConnectionLost;
 
-        private void Awake()
-        {
-            ConnectToServer();
-        }
+        private Socket _clientSocket;
+        private IPEndPoint _serverEndPoint;
+
+        private ManualResetEvent _connectedToServer = new ManualResetEvent(false);
+        private int _reconnectionAttempts = 0;
 
         private void OnApplicationQuit()
         {
+            NicknameOperationsData uodh = new NicknameOperationsData();
+            uodh.OperationType = NicknameOperation.Remove;
+            uodh.OldNickname = ChatUser.I.nickname;
+
+            NetworkMessage networkMessage = new NetworkMessage(uodh);
+            _clientSocket.Send(networkMessage.ByteMessage);
             DisconnectFromServer();
         }
 
-        public void ConnectToServer()
+        public void ConnectToServer(IPAddress serverAddress, Int32 portNumber)
         {
-            _communicationDone = new ManualResetEvent(false);
+            _serverEndPoint = new IPEndPoint(serverAddress, portNumber);
+
+            ConnectToServer();
+        }
+
+        private void ConnectToServer()
+        {
+            _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _connectedToServer.Reset();
+            
+            _clientSocket.BeginConnect(_serverEndPoint, new AsyncCallback(ConnectCallback), _clientSocket);
+        }
+
+        public void ConnectCallback(IAsyncResult connectionResult)
+        {
+            Socket connectedSocket = (Socket)connectionResult.AsyncState;
 
             try
             {
-                _communicationDone.Reset();
+                connectedSocket.EndConnect(connectionResult);
 
-                _clientSocket.BeginConnect(_serverEndPoint, new AsyncCallback(ConnectCallback), _clientSocket);
+                _connectedToServer.Set();
 
-                _communicationDone.WaitOne();
+                _reconnectionAttempts = 0;
+                //Thread checkConnectionThread = new Thread(CheckForConnection);
+                //checkConnectionThread.Start();
+
+                Debug.Log("Connected to server.");
+
+                StartReceiveData(new ReceivedState(connectedSocket));
             }
             catch (ArgumentNullException ae)
             {
@@ -49,6 +77,7 @@ namespace bwoah_cli
             }
             catch (SocketException se)
             {
+                NoConnection();
                 Debug.LogError(String.Format("SocketException : {0}", se.ToString()));
             }
             catch (Exception e)
@@ -57,15 +86,38 @@ namespace bwoah_cli
             }
         }
 
-        public void ConnectCallback(IAsyncResult connectionResult)
+        private void StartReceiveData(ReceivedState receivedState)
         {
+            receivedState.NetSocket.BeginReceive(receivedState.Buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(ReceiveCallback), receivedState);
+        }
+
+        private void ReceiveCallback(IAsyncResult receivedSocket)
+        {
+            ReceivedState receivedState = (ReceivedState)receivedSocket.AsyncState;
+
             try
             {
-                _communicationDone.Set();
+                receivedState.NetSocket.EndReceive(receivedSocket);
 
-                Debug.Log("Connected to server.");
+                receivedState.HandleData();
 
-                BeginReceive();
+                if (receivedState.WaitForData)
+                {
+                    StartReceiveData(receivedState);
+                }
+                else
+                {
+                    StartReceiveData(new ReceivedState(receivedState.NetSocket));
+                }
+            }
+            catch (ArgumentNullException ae)
+            {
+                Debug.LogError(String.Format("ArgumentNullException : {0}", ae.ToString()));
+            }
+            catch (SocketException se)
+            {
+                ConnectionLost();
+                Debug.LogError(String.Format("SocketException : {0}", se.ToString()));
             }
             catch (Exception e)
             {
@@ -73,28 +125,7 @@ namespace bwoah_cli
             }
         }
 
-        public void BeginReceive()
-        {
-            ReceivedState socketState = new ReceivedState(_clientSocket);
-            _clientSocket.BeginReceive(socketState.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(RecieveCallback), socketState);
-        }
-
-        public void RecieveCallback(IAsyncResult recieveResult)
-        {
-            ReceivedState state = (ReceivedState)recieveResult.AsyncState;
-            Socket handler = state.NetSocket;
-
-            int dataLength = handler.EndReceive(recieveResult);
-
-            BeginReceive();
-
-            if (dataLength > 0)
-            { 
-                state.HandleData(dataLength);
-            }
-        }
-
-        public void DisconnectFromServer()
+        public void DisconnectFromServer(bool reuseSocket = false)
         {
             try
             {
@@ -110,7 +141,10 @@ namespace bwoah_cli
 
         public void SendMessageToServer(AData message)
         {
-            byte[] byteData = message.ParseToByte();
+            _connectedToServer.WaitOne();
+
+            NetworkMessage networkMessage = new NetworkMessage(message);
+            byte[] byteData = networkMessage.ByteMessage;
 
             _clientSocket.BeginSend(byteData, 0, byteData.Length, (SocketFlags)SOCKET_FLAGS, new AsyncCallback(SendMessageToServerCallback), _clientSocket);
         }
@@ -123,9 +157,72 @@ namespace bwoah_cli
 
                 Debug.Log("Message sent.");
             }
+            catch (ArgumentNullException ae)
+            {
+                Debug.LogError(String.Format("ArgumentNullException : {0}", ae.ToString()));
+            }
+            catch (SocketException se)
+            {
+                ConnectionLost();
+                Debug.LogError(String.Format("SocketException : {0}", se.ToString()));
+            }
             catch (Exception e)
             {
                 Debug.LogError(String.Format("Unexpected exception : {0}", e.ToString()));
+            }
+        }
+
+        private bool IsServerConnected()
+        {
+            return !((_clientSocket.Poll(1000, SelectMode.SelectRead) && (_clientSocket.Available == 0)) || !_clientSocket.Connected);
+        }
+
+        //private void CheckForConnection()
+        //{
+        //    Thread.Sleep(CONNECTION_CHECK_INTERVAL * 1000);
+        //    if (!IsServerConnected())
+        //    {
+        //        ConnectionLost();
+        //    }
+        //    else
+        //    {
+        //        Thread checkConnectionThread = new Thread(CheckForConnection);
+        //        checkConnectionThread.Start();
+        //    }
+        //}
+
+        private void ConnectionLost()
+        {
+            if (OnUltimateConnectionLost != null)
+            {
+                _reconnectionAttempts = 0;
+                OnConnectionLost();
+            }
+            DisconnectFromServer(true);
+            NoConnection();
+        }
+
+        private void NoConnection()
+        {
+            Thread reconnectThread = new Thread(TryReconnect);
+            reconnectThread.Start();
+        }
+
+        private void TryReconnect()
+        {
+            _reconnectionAttempts++;
+            if (_reconnectionAttempts > RECONNECTION_ATTEMPTS)
+            {
+                if (OnUltimateConnectionLost != null)
+                {
+                    OnUltimateConnectionLost();
+                }
+                _reconnectionAttempts = 0;
+            }
+            else
+            {
+                Thread.Sleep(RECONNECTION_INTERVAL * 1000);
+                ConnectToServer();
             }
         }
     }

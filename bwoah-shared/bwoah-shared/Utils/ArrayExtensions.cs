@@ -18,5 +18,13 @@ namespace bwoah_shared.Utils
             Array.Copy(data, index, result, 0, length);
             return result;
         }
+
+        public static void Add<T>(this T[] data, T[] array)
+        {
+            T[] result = new T[data.Length + array.Length];
+            Array.Copy(data, result, array.Length);
+            Array.Copy(data, 0, result, data.Length, array.Length);
+            data = result;
+        }
     }
 }

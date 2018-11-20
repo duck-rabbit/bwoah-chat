@@ -11,32 +11,47 @@ namespace bwoah_srv.Server
 {
     class Message
     {
-        public DateTime ReceivedTime { get; private set; }
+        public ChatChannel Channel { get; private set; }
+        public bool IsAutoMessage { get; private set; }
+        public DateTime Timestamp { get; private set; }
         public ChatUser User { get; private set; }
         public String Content { get; private set; }
 
-        public ServerMessageData ServerMessageData
+        public Message(ChatChannel channel, ChatUser user, string content, bool isAutoMessage = false)
         {
-            get
-            {
-                ServerMessageData smd = new ServerMessageData();
-                smd.Time = ReceivedTime;
-                smd.UserNickname = User.Nickname;
-                smd.Message = Content;
-                return smd;
-            }
-        }
-
-        public Message(ChatUser user, string content)
-        {
-            ReceivedTime = DateTime.UtcNow;
+            Channel = channel;
+            Timestamp = DateTime.UtcNow;
             User = user;
             Content = content;
+            IsAutoMessage = isAutoMessage;
+        }
+
+        public ChatMessageData GetChatMessage()
+        {
+            ChatMessageData chatMessageData = new ChatMessageData();
+            chatMessageData.Channel = Channel.ChannelId;
+            chatMessageData.IsAutoMessage = IsAutoMessage;
+            chatMessageData.Timestamp = Timestamp;
+            chatMessageData.Nickname = User.Nickname;
+            chatMessageData.Content = Content;
+            return chatMessageData;
         }
 
         public override String ToString()
         {
-            return String.Format("{0} {1}: {2}", ReceivedTime.ToLongTimeString(), User.Nickname, Content);
+            if (!IsAutoMessage)
+            {
+                return String.Format("[Channel {0}] @{1} {2}: {3}", Channel.ChannelId, Timestamp.ToLongTimeString(), User.Nickname, Content);
+            }
+            else
+            {
+                return String.Format("[Channel {0}] @{1}: {2}", Channel.ChannelId, Timestamp.ToLongTimeString(), Content);
+            }
+        }
+
+        public void LogToConsole()
+        {
+            Console.WriteLine(ToString());
         }
     }
 }

@@ -9,9 +9,6 @@ namespace bwoah_shared.DataClasses
 {
     public abstract class AData
     {
-        public byte DataId { get; set; }
-        //public String _json;
-
         public string ParseToJson()
         {
             String json = JsonConvert.SerializeObject(this);
@@ -24,22 +21,6 @@ namespace bwoah_shared.DataClasses
             Console.WriteLine(json);
             Console.WriteLine(GetType().ToString());
             return (AData)(JsonConvert.DeserializeObject(json, this.GetType()));
-        }
-
-        public byte[] ParseToByte()
-        {
-            DataId = DataTypeIds.GetIdByType(this.GetType());
-            MemoryStream byteStream = new MemoryStream();
-
-            byteStream.Append(DataId);
-            byteStream.Append(Encoding.UTF8.GetBytes(ParseToJson()));
-
-            return byteStream.ToArray();
-        }
-
-        public AData ParseFromByte(byte[] byteData)
-        {
-            return ParseFromJson(Encoding.UTF8.GetString(byteData.SubArray(1, byteData.Length - 1)));
         }
     }
 }

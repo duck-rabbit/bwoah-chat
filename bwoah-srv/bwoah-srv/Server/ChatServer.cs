@@ -12,10 +12,7 @@ using bwoah_shared.DataClasses;
 
 namespace bwoah_srv.Server
 {
-    /// <summary>
-    /// Class responsible for managing connections
-    /// </summary>
-    class ChatServer : Singleton<ChatServer>
+    class ChatServer : Singleton<ChatServer>, IServer
     {
         public static IPAddress INTERFACE_TO_LISTEN = IPAddress.Parse("192.168.0.59");
         public static int LOCAL_PORT = 13131;
@@ -25,15 +22,6 @@ namespace bwoah_srv.Server
         private IPEndPoint _localEndPoint;
         private Socket _serverSocket;
 
-        private string dafuq = String.Empty;
-
-        ManualResetEvent _doneListening = new ManualResetEvent(false);
-
-        Chat _chat = new Chat();
-
-        /// <summary>
-        /// Start chat server
-        /// </summary>
         public void StartServer()
         {
             if (!IsIPCorrect())
@@ -43,7 +31,7 @@ namespace bwoah_srv.Server
 
             _localEndPoint = new IPEndPoint(INTERFACE_TO_LISTEN, LOCAL_PORT);
 
-            Console.WriteLine(String.Format("[System] Starting Bwoah! Server on {0}", _localEndPoint.ToString()));
+            Console.WriteLine(String.Format("[Server] Starting Bwoah! Server on {0}", _localEndPoint.ToString()));
 
             _serverSocket = new Socket(_localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -54,10 +42,17 @@ namespace bwoah_srv.Server
 
                 StartAccept();
             }
+            catch (ArgumentNullException ae)
+            {
+                Console.WriteLine("[Server] ArgumentNullException : {0}", ae.ToString());
+            }
+            catch (SocketException se)
+            {
+                Console.WriteLine("[Server] SocketException : {0}", se.ToString());
+            }
             catch (Exception e)
             {
-                Console.WriteLine("Unexpected error. Closing Bwoah! server.");
-                Console.WriteLine(e.ToString());
+                Console.WriteLine("[Server] Unexpected exception : {0}", e.ToString());
             }
         }
 
@@ -68,40 +63,80 @@ namespace bwoah_srv.Server
 
         private void AcceptCallback(IAsyncResult asyncResult)
         {
-            StartAccept();
+            try
+            {
+                StartAccept();
 
-            Socket listener = (Socket)asyncResult.AsyncState;
-            Socket socket = listener.EndAccept(asyncResult);
+                Socket listener = (Socket)asyncResult.AsyncState;
+                Socket socket = listener.EndAccept(asyncResult);
 
-            _chat.AddUser(socket);
-
-            StartReceiveData(socket);
+                StartReceiveData(new ReceivedState(socket));
+            }
+            catch (ArgumentNullException ae)
+            {
+                Console.WriteLine("[Server] ArgumentNullException : {0}", ae.ToString());
+            }
+            catch (SocketException se)
+            {
+                Console.WriteLine("[Server] SocketException : {0}", se.ToString());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[Server] Unexpected exception : {0}", e.ToString());
+            }
         }
 
-        private void StartReceiveData(Socket socket)
+        private void StartReceiveData(ReceivedState receivedState)
         {
-            ReceivedState socketState = new ReceivedState(socket);
-            socket.BeginReceive(socketState.buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(ReceiveCallback), socketState);
+            receivedState.NetSocket.BeginReceive(receivedState.Buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(ReceiveCallback), receivedState);
         }
 
         private void ReceiveCallback(IAsyncResult receivedSocket)
         {
-            ReceivedState socketState = (ReceivedState)receivedSocket.AsyncState;
+            ReceivedState receivedState = (ReceivedState)receivedSocket.AsyncState;
 
-            int dataLength = socketState.NetSocket.EndReceive(receivedSocket);
+            int dataLength = receivedState.NetSocket.EndReceive(receivedSocket);
 
             if (dataLength > 0)
             {
-                StartReceiveData(socketState.NetSocket);
+                receivedState.HandleData();
 
-                socketState.HandleData(dataLength);
+                if (receivedState.WaitForData)
+                {
+                    StartReceiveData(receivedState);
+                }
+                else
+                {
+                    StartReceiveData(new ReceivedState(receivedState.NetSocket));
+                }
             }
             else
             {
-                _chat.RemoveUser(socketState.NetSocket);
+                receivedState.NetSocket.Shutdown(SocketShutdown.Both);
+                receivedState.NetSocket.Close();
+            }
+        }
 
-                socketState.NetSocket.Shutdown(SocketShutdown.Both);
-                socketState.NetSocket.Close();
+        public void SendData(byte[] byteData, Socket socket)
+        {
+            StartSendData(byteData, socket);
+        }
+
+        private void StartSendData(byte[] byteData, Socket socket)
+        {
+            socket.BeginSend(byteData, 0, byteData.Length, (SocketFlags)ChatServer.SOCKET_FLAGS, new AsyncCallback(SendDataCallback), socket);
+        }
+
+        private void SendDataCallback(IAsyncResult connectionResult)
+        {
+            Socket socket = (Socket)connectionResult.AsyncState;
+            try
+            {
+                socket.EndSend(connectionResult);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[Server] {0}", e.ToString());
             }
         }
 
@@ -117,8 +152,8 @@ namespace bwoah_srv.Server
                 AllIPs.Add(address.ToString());
             }
 
-            Console.WriteLine("Your specified IP is none of those present on the machine interfaces!");
-            Console.WriteLine("Your IP adresses:");
+            Console.WriteLine("[Server] Your specified IP is none of those present on the machine interfaces!");
+            Console.WriteLine("[Server] Your IP adresses:");
 
             foreach (String ip in AllIPs)
             {

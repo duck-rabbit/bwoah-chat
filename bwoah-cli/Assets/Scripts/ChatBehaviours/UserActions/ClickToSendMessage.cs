@@ -7,24 +7,22 @@ using bwoah_shared.DataClasses;
 
 public class ClickToSendMessage : MonoBehaviour
 {
-    [SerializeField] InputField _chatInput;
+    [SerializeField] private InputField _chatInput;
+    private ChatUser _user;
 
-    private void Update()
+    private void Start()
     {
-        if (Input.GetKeyDown(KeyCode.Return) && _chatInput.isFocused)
-        {
-            ClickSendButton();
-        }
+        _user = ChatUser.I;
     }
 
     public void ClickSendButton()
     {
         if (!_chatInput.text.Equals(string.Empty))
         {
-            ClientMessageData messageData = new ClientMessageData();
-            messageData.Message = _chatInput.text;
-            messageData.ChannelId = 0;
-            Debug.Log(messageData.ParseToJson());
+            ChatMessageData messageData = new ChatMessageData();
+            messageData.Content = _chatInput.text;
+            messageData.Channel = 0;
+            messageData.Nickname = _user.nickname;
             ChatClient.I.SendMessageToServer(messageData);
             _chatInput.text = string.Empty;
         }

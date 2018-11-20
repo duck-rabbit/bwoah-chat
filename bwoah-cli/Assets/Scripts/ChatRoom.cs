@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using bwoah_cli;
-using bwoah_shared.DataClasses;
 
-public class ClickToSendNickname : MonoBehaviour
+public class ChatRoom
 {
-
+    public List<Text> nicknameList = new List<Text>();
 }
