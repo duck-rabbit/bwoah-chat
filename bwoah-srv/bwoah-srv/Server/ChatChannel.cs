@@ -13,16 +13,20 @@ namespace bwoah_srv.Server
 {
     class ChatChannel
     {
+        public static int CACHE_MESSAGE_COUNT = 10;
+
         private IServer _server;
 
         public int ChannelId { get; private set; }
         public ConcurrentDictionary<Socket, ChatUser> UserList { get; private set; }
+        public ConcurrentQueue<Message> MessageCache { get; private set; }
 
         public ChatChannel(IServer server, int id, ConcurrentDictionary<Socket, ChatUser> userList)
         {
             _server = server;
             ChannelId = id;
             UserList = userList;
+            MessageCache = new ConcurrentQueue<Message>();
         }
 
         public void SendDataToAllUsers(byte[] byteData)
@@ -40,6 +44,21 @@ namespace bwoah_srv.Server
             channelData.UserNicknames = UserList.Values.Select(chatUser => chatUser.Nickname).ToArray();
 
             return channelData;
+        }
+
+        public void CacheMessage(Message message)
+        {
+            if (MessageCache.Count >= CACHE_MESSAGE_COUNT)
+            {
+                Message messageToDequeue;
+                MessageCache.TryDequeue(out messageToDequeue);
+            }
+            MessageCache.Enqueue(message);
+        }
+
+        public IEnumerable<Message> GetCachedMessages()
+        {
+            return MessageCache.ToArray();
         }
     }
 }

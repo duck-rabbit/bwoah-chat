@@ -19,12 +19,13 @@ namespace bwoah_shared.Utils
             return result;
         }
 
-        public static void Add<T>(this T[] data, T[] array)
+        public static T[] Add<T>(this T[] data, T[] array)
         {
             T[] result = new T[data.Length + array.Length];
-            Array.Copy(data, result, array.Length);
-            Array.Copy(data, 0, result, data.Length, array.Length);
-            data = result;
+            Array.Copy(data, result, data.Length);
+            Array.Copy(array, 0, result, data.Length, array.Length);
+            Console.WriteLine("ADD: " + data.Length + " + " + array.Length + " = " + result.Length);
+            return result;
         }
     }
 }

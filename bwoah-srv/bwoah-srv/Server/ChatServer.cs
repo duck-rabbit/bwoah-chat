@@ -21,6 +21,8 @@ namespace bwoah_srv.Server
 
         public Action<Socket> UserSocketException { get; set; }
 
+        private ConcurrentDictionary<Socket, ManualResetEventSlim> _sendingToSocket = new ConcurrentDictionary<Socket, ManualResetEventSlim>();
+
         public void StartServer()
         {
             try
@@ -113,6 +115,12 @@ namespace bwoah_srv.Server
                 }
                 else
                 {
+                    if (_sendingToSocket.ContainsKey(receivedState.NetSocket))
+                    {
+                        ManualResetEventSlim mres;
+                        _sendingToSocket.TryRemove(receivedState.NetSocket, out mres);
+                    }
+
                     receivedState.NetSocket.Shutdown(SocketShutdown.Both);
                     Console.WriteLine("[Server] Connection with {0} closed", receivedState.NetSocket.RemoteEndPoint.ToString());
                     receivedState.NetSocket.Close();
@@ -124,6 +132,11 @@ namespace bwoah_srv.Server
             }
             catch (SocketException se)
             {
+                if (_sendingToSocket.ContainsKey(receivedState.NetSocket))
+                {
+                    ManualResetEventSlim mres;
+                    _sendingToSocket.TryRemove(receivedState.NetSocket, out mres);
+                }
                 UserSocketException?.Invoke(receivedState.NetSocket);
                 Console.WriteLine("[Server] SocketException : {0}", se.ToString());
             }
@@ -140,7 +153,27 @@ namespace bwoah_srv.Server
 
         private void StartSendData(byte[] byteData, Socket socket)
         {
+            if (!_sendingToSocket.ContainsKey(socket))
+            {
+                _sendingToSocket.TryAdd(socket, new ManualResetEventSlim(true));
+            }
+
+            _sendingToSocket[socket].Wait();
+
+            _sendingToSocket[socket].Reset();
+
             socket.BeginSend(byteData, 0, byteData.Length, (SocketFlags)ChatServer.SOCKET_FLAGS, new AsyncCallback(SendDataCallback), socket);
+        }
+
+        public void PrintByteArray(byte[] bytes)
+        {
+            var sb = new StringBuilder("new byte[] { ");
+            foreach (var b in bytes)
+            {
+                sb.Append(b + ", ");
+            }
+            sb.Append("}");
+            Console.WriteLine(sb.ToString());
         }
 
         private void SendDataCallback(IAsyncResult connectionResult)
@@ -150,6 +183,8 @@ namespace bwoah_srv.Server
             try
             {
                 socket.EndSend(connectionResult);
+
+                _sendingToSocket[socket].Set();
             }
             catch (ArgumentNullException ae)
             {
@@ -157,6 +192,11 @@ namespace bwoah_srv.Server
             }
             catch (SocketException se)
             {
+                if (_sendingToSocket.ContainsKey(socket))
+                {
+                    ManualResetEventSlim mres;
+                    _sendingToSocket.TryRemove(socket, out mres);
+                }
                 UserSocketException?.Invoke(socket);
                 Console.WriteLine("[Server] SocketException : {0}", se.ToString());
             }

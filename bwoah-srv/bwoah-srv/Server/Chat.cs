@@ -39,6 +39,7 @@ namespace bwoah_srv.Server
             Message message = new Message(_openWall, GetUserBySocket(socket), chatMessage.Content);
 
             message.LogToConsole();
+            _openWall.CacheMessage(message);
 
             AData dataToSend = message.GetChatMessage();
 
@@ -62,8 +63,17 @@ namespace bwoah_srv.Server
             _openWall.UserList.AddOrUpdate(socket, newUser, (key, value) => _openWall.UserList[socket]);
             _openWall.UserList.OrderBy(pair => pair.Value.Nickname);
 
+            foreach (Message cachedMessage in _openWall.GetCachedMessages())
+            {
+                NetworkMessage catchUpMessage = new NetworkMessage(cachedMessage.GetChatMessage());
+
+                _server.SendData(catchUpMessage.ByteMessage, socket);
+            }
+
             Message userJoinedMessage = new Message(_openWall, newUser, string.Format("{0} joined the chat", data.Nickname), true);
             userJoinedMessage.LogToConsole();
+
+            _openWall.CacheMessage(userJoinedMessage);
 
             NetworkMessage networkMessage = new NetworkMessage(userJoinedMessage.GetChatMessage());
             _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
@@ -91,6 +101,8 @@ namespace bwoah_srv.Server
                 Message userLeftMessage = new Message(_openWall, userToRemove, string.Format("{0} left the chat", userToRemove.Nickname), true);
                 userLeftMessage.LogToConsole();
 
+                _openWall.CacheMessage(userLeftMessage);
+
                 networkMessage = new NetworkMessage(userLeftMessage.GetChatMessage());
                 _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
             }
@@ -103,6 +115,8 @@ namespace bwoah_srv.Server
 
             Message userChangedMessage = new Message(_openWall, user, string.Format("{0} changed their name to {1}", user.Nickname, nicknameOperationsData.NewNickname), true);
             userChangedMessage.LogToConsole();
+
+            _openWall.CacheMessage(userChangedMessage);
 
             NetworkMessage networkMessage = new NetworkMessage(userChangedMessage.GetChatMessage());
             _openWall.SendDataToAllUsers(networkMessage.ByteMessage);

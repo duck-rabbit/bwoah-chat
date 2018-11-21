@@ -14,6 +14,7 @@ public class ClickToSendNickname : MonoBehaviour
     private void Start()
     {
         _user = ChatUser.I;
+        _nicknameInput.text = _user.nickname;
     }
 
     public void ClickSendButton()

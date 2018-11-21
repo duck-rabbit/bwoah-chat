@@ -24,7 +24,8 @@ namespace bwoah_cli
         private Socket _clientSocket;
         private IPEndPoint _serverEndPoint;
 
-        private ManualResetEvent _connectedToServer = new ManualResetEvent(false);
+        private ManualResetEventSlim _connectedToServer = new ManualResetEventSlim(false);
+        private ManualResetEventSlim _processPreviousReceive = new ManualResetEventSlim(true);
         private int _reconnectionAttempts = 0;
 
         private bool _appIsQuitting = false;
@@ -59,12 +60,14 @@ namespace bwoah_cli
         {
             _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _connectedToServer.Reset();
-            
+
             _clientSocket.BeginConnect(_serverEndPoint, new AsyncCallback(ConnectCallback), _clientSocket);
         }
 
         public void ConnectCallback(IAsyncResult connectionResult)
         {
+            
+
             Socket connectedSocket = (Socket)connectionResult.AsyncState;
 
             try
@@ -101,6 +104,10 @@ namespace bwoah_cli
 
         private void StartReceiveData(ReceivedState receivedState)
         {
+            _processPreviousReceive.Wait();
+
+            _processPreviousReceive.Reset();
+
             receivedState.NetSocket.BeginReceive(receivedState.Buffer, 0, ReceivedState.BUFFER_SIZE, 0, new AsyncCallback(ReceiveCallback), receivedState);
         }
 
@@ -114,6 +121,8 @@ namespace bwoah_cli
 
                 receivedState.HandleData();
 
+                _processPreviousReceive.Set();
+
                 if (receivedState.WaitForData)
                 {
                     StartReceiveData(receivedState);
@@ -125,15 +134,18 @@ namespace bwoah_cli
             }
             catch (ArgumentNullException ae)
             {
+                //StartReceiveData(new ReceivedState(receivedState.NetSocket));
                 Debug.LogError(String.Format("ArgumentNullException : {0}", ae.ToString()));
             }
             catch (SocketException se)
             {
+                _processPreviousReceive.Set();
                 ConnectionLost();
                 Debug.LogWarning(String.Format("SocketException : {0}", se.ToString()));
             }
             catch (Exception e)
             {
+                //StartReceiveData(new ReceivedState(receivedState.NetSocket));
                 Debug.LogError(String.Format("Unexpected exception : {0}", e.ToString()));
             }
         }
@@ -157,13 +169,15 @@ namespace bwoah_cli
             }
             catch (Exception e)
             {
+                ConnectionLost();
                 Debug.LogError(String.Format("Unexpected exception : {0}", e.ToString()));
             }
         }
 
         public void SendMessageToServer(AData message)
         {
-            _connectedToServer.WaitOne();
+
+            _connectedToServer.Wait();
 
             NetworkMessage networkMessage = new NetworkMessage(message);
             byte[] byteData = networkMessage.ByteMessage;
@@ -190,6 +204,7 @@ namespace bwoah_cli
             }
             catch (Exception e)
             {
+                ConnectionLost();
                 Debug.LogError(String.Format("Unexpected exception : {0}", e.ToString()));
             }
         }

@@ -21,12 +21,10 @@ namespace bwoah_shared
         {
             get
             {
-                Size = (UInt32)Payload.LongLength;
-
                 MemoryStream memoryStream = new MemoryStream();
 
-                memoryStream.Append(MessageType);
                 memoryStream.Append(BitConverter.GetBytes(Size));
+                memoryStream.Append(MessageType);
                 memoryStream.Append(Payload);
 
                 return memoryStream.ToArray();
@@ -46,9 +44,13 @@ namespace bwoah_shared
 
         public NetworkMessage(byte[] byteMessage)
         {
-            MessageType = byteMessage[0];
-            Size = BitConverter.ToUInt32(byteMessage, 1);
-            Payload = byteMessage.SubArray(5, (int)Size);
+            Size = BitConverter.ToUInt32(byteMessage, 0);
+
+            if (Size != 0 && Size <= byteMessage.Length)
+            {
+                MessageType = byteMessage[4];
+                Payload = byteMessage.SubArray(5, (int)Size - 5);
+            }
         }
 
         public NetworkMessage(AData payloadData)
@@ -57,7 +59,7 @@ namespace bwoah_shared
 
             String jsonData = JsonConvert.SerializeObject(payloadData);
             Payload = Encoding.UTF8.GetBytes(jsonData);
-            Size = (UInt32)Payload.LongLength;
+            Size = (UInt32)Payload.LongLength + 5;
         }
 
         public void AddBytesToPayload(byte[] additionalData)

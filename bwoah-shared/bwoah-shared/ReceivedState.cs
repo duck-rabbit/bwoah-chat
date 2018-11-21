@@ -11,43 +11,68 @@ namespace bwoah_shared
     {
         public const int BUFFER_SIZE = 1024;
 
-        public bool WaitForData { get; set; }
         public Socket NetSocket { get; set; }
         public byte[] Buffer { get; set; }
+        private byte[] _messageBuffer = new byte[0];
+
+        public bool ReadCurrentBuffer
+        {
+            get
+            {
+                if (_networkMessage.Size == 0)
+                {
+                    return false;
+                }
+                else
+                {
+                    return _networkMessage.Size < _messageBuffer.Length;
+                }
+            }
+        }
+
+        public bool WaitForData
+        {
+            get
+            {
+                return _networkMessage.Size > _messageBuffer.Length;
+            }
+        }
 
         private NetworkMessage _networkMessage;
-        private int _recievedOperationIndex = 0;
 
         public ReceivedState(Socket socket)
         {
             NetSocket = socket;
             Buffer = new byte[BUFFER_SIZE];
-            WaitForData = false;
         }
 
         public void HandleData()
         {
-            _recievedOperationIndex++;
-
-            if (WaitForData)
+            if (_messageBuffer.Length == 0)
             {
-                _networkMessage.AddBytesToPayload(Buffer);
+                _messageBuffer = Buffer;
             }
             else
             {
-                _networkMessage = new NetworkMessage(Buffer);
+                byte[] newBuffer = _messageBuffer.Add(Buffer);
+                _messageBuffer = newBuffer;
             }
 
-            if (_networkMessage.Size < BUFFER_SIZE * _recievedOperationIndex)
+            _networkMessage = new NetworkMessage(_messageBuffer);
+
+            do
             {
                 AData receivedData = _networkMessage.GetPayloadData;
                 DataHandler.Instance.HandleData(receivedData, NetSocket);
-                WaitForData = false;
+
+                byte[] newBuffer = _messageBuffer.SubArray((int)_networkMessage.Size, _messageBuffer.Length - ((int)_networkMessage.Size));
+                _messageBuffer = newBuffer;
+
+                _networkMessage = new NetworkMessage(_messageBuffer);
             }
-            else
-            {
-                WaitForData = true;
-            }
+            while (ReadCurrentBuffer);
+
+            Buffer = new byte[BUFFER_SIZE];
         }
     }
 }
