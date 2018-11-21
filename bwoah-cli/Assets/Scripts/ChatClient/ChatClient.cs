@@ -14,12 +14,12 @@ namespace bwoah_cli
     public class ChatClient : UnitySingleton<ChatClient>
     {
         public static int SOCKET_FLAGS = 0;
-        public static int CONNECTION_CHECK_INTERVAL = 5;
         public static int RECONNECTION_INTERVAL = 1;
-        public static int RECONNECTION_ATTEMPTS = 2;
+        public static int RECONNECTION_ATTEMPTS = 10;
 
         public Action OnConnectionLost;
         public Action OnUltimateConnectionLost;
+        public Action OnConnectionEstablished;
 
         private Socket _clientSocket;
         private IPEndPoint _serverEndPoint;
@@ -27,15 +27,25 @@ namespace bwoah_cli
         private ManualResetEvent _connectedToServer = new ManualResetEvent(false);
         private int _reconnectionAttempts = 0;
 
-        private void OnApplicationQuit()
-        {
-            NicknameOperationsData uodh = new NicknameOperationsData();
-            uodh.OperationType = NicknameOperation.Remove;
-            uodh.OldNickname = ChatUser.I.nickname;
+        private bool _appIsQuitting = false;
 
-            NetworkMessage networkMessage = new NetworkMessage(uodh);
-            _clientSocket.Send(networkMessage.ByteMessage);
-            DisconnectFromServer();
+        private IEnumerator OnApplicationQuit()
+        {
+            _appIsQuitting = true;
+
+            if (_clientSocket != null)
+            {
+                if (_clientSocket.Connected)
+                {
+                    DisconnectUserData disconnectUserData = new DisconnectUserData();
+                    NetworkMessage networkMessage = new NetworkMessage(disconnectUserData);
+                    _clientSocket.Send(networkMessage.ByteMessage);
+
+                    DisconnectFromServer();
+                }
+            }
+
+            yield return null;
         }
 
         public void ConnectToServer(IPAddress serverAddress, Int32 portNumber)
@@ -63,9 +73,12 @@ namespace bwoah_cli
 
                 _connectedToServer.Set();
 
+                if (OnConnectionEstablished != null)
+                {
+                    OnConnectionEstablished();
+                }
+
                 _reconnectionAttempts = 0;
-                //Thread checkConnectionThread = new Thread(CheckForConnection);
-                //checkConnectionThread.Start();
 
                 Debug.Log("Connected to server.");
 
@@ -78,7 +91,7 @@ namespace bwoah_cli
             catch (SocketException se)
             {
                 NoConnection();
-                Debug.LogError(String.Format("SocketException : {0}", se.ToString()));
+                Debug.LogWarning(String.Format("SocketException : {0}", se.ToString()));
             }
             catch (Exception e)
             {
@@ -117,7 +130,7 @@ namespace bwoah_cli
             catch (SocketException se)
             {
                 ConnectionLost();
-                Debug.LogError(String.Format("SocketException : {0}", se.ToString()));
+                Debug.LogWarning(String.Format("SocketException : {0}", se.ToString()));
             }
             catch (Exception e)
             {
@@ -125,7 +138,7 @@ namespace bwoah_cli
             }
         }
 
-        public void DisconnectFromServer(bool reuseSocket = false)
+        public void DisconnectFromServer()
         {
             try
             {
@@ -133,9 +146,18 @@ namespace bwoah_cli
 
                 Debug.Log("Disconnected from server.");
             }
+            catch (ArgumentNullException ae)
+            {
+                Debug.LogError(String.Format("ArgumentNullException : {0}", ae.ToString()));
+            }
+            catch (SocketException se)
+            {
+                ConnectionLost();
+                Debug.LogWarning(String.Format("SocketException : {0}", se.ToString()));
+            }
             catch (Exception e)
             {
-                Debug.LogError(String.Format("Exception : {0}", e.ToString()));
+                Debug.LogError(String.Format("Unexpected exception : {0}", e.ToString()));
             }
         }
 
@@ -164,7 +186,7 @@ namespace bwoah_cli
             catch (SocketException se)
             {
                 ConnectionLost();
-                Debug.LogError(String.Format("SocketException : {0}", se.ToString()));
+                Debug.LogWarning(String.Format("SocketException : {0}", se.ToString()));
             }
             catch (Exception e)
             {
@@ -172,34 +194,18 @@ namespace bwoah_cli
             }
         }
 
-        private bool IsServerConnected()
-        {
-            return !((_clientSocket.Poll(1000, SelectMode.SelectRead) && (_clientSocket.Available == 0)) || !_clientSocket.Connected);
-        }
-
-        //private void CheckForConnection()
-        //{
-        //    Thread.Sleep(CONNECTION_CHECK_INTERVAL * 1000);
-        //    if (!IsServerConnected())
-        //    {
-        //        ConnectionLost();
-        //    }
-        //    else
-        //    {
-        //        Thread checkConnectionThread = new Thread(CheckForConnection);
-        //        checkConnectionThread.Start();
-        //    }
-        //}
-
         private void ConnectionLost()
         {
-            if (OnUltimateConnectionLost != null)
+            if (!_appIsQuitting)
             {
-                _reconnectionAttempts = 0;
-                OnConnectionLost();
+                if (OnConnectionLost != null)
+                {
+                    _reconnectionAttempts = 0;
+                    OnConnectionLost();
+                }
+                DisconnectFromServer();
+                NoConnection();
             }
-            DisconnectFromServer(true);
-            NoConnection();
         }
 
         private void NoConnection()

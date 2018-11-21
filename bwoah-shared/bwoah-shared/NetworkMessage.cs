@@ -33,15 +33,15 @@ namespace bwoah_shared
             }
         }
 
-        public AData GetPayloadData()
+        public AData GetPayloadData
         {
-            //get
-            //{
+            get
+            {
                 AData payloadData = DataFactory.Create(MessageType);
                 String jsonData = Encoding.UTF8.GetString(Payload);
                 payloadData = payloadData.ParseFromJson(jsonData);
                 return payloadData;
-            //}
+            }
         }
 
         public NetworkMessage(byte[] byteMessage)

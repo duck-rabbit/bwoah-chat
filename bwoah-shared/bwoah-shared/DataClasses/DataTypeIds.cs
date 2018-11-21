@@ -23,8 +23,9 @@ namespace bwoah_shared.DataClasses
         {
             new DataTypeId(0, typeof(ChatMessageData)),
             new DataTypeId(1, typeof(NewUserData)),
-            new DataTypeId(2, typeof(ChannelData)),
-            new DataTypeId(3, typeof(NicknameOperationsData)),
+            new DataTypeId(2, typeof(DisconnectUserData)),
+            new DataTypeId(3, typeof(ChannelData)),
+            new DataTypeId(4, typeof(NicknameChangeData)),
         };
 
         public static byte GetIdByType(Type type)

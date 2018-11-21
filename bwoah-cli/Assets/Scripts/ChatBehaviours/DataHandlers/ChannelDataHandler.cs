@@ -10,7 +10,6 @@ public class ChannelDataHandler : DataOnUpdateHandler
 {
     [SerializeField] private Text _userPrefab;
     [SerializeField] private Transform _userContainer;
-    [SerializeField] private GameObject _loadingScreen;
 
     private ChatUser _user;
 
@@ -37,9 +36,19 @@ public class ChannelDataHandler : DataOnUpdateHandler
 
     override protected void HandleData(AData data)
     {
-        _loadingScreen.SetActive(false);
-
         ChannelData messageData = (ChannelData)data;
+
+        if (!_user.chatRooms.ContainsKey(messageData.ChannelId))
+        {
+            _user.chatRooms.Add(messageData.ChannelId, new ChatRoom());
+        }
+
+        foreach (Transform userPrefab in _userContainer)
+        {
+            Destroy(userPrefab.gameObject);
+        }
+
+        _user.chatRooms[messageData.ChannelId].nicknameList.Clear();
 
         if (messageData.UserNicknames != null)
         {
@@ -62,8 +71,7 @@ public class ChannelDataHandler : DataOnUpdateHandler
 
                 nicknameText.text = textToPut;
 
-                _user.chatRooms.Add(0, new ChatRoom());
-                _user.chatRooms[0].nicknameList.Add(nicknameText);
+                _user.chatRooms[messageData.ChannelId].nicknameList.Add(nicknameText);
             }
         }
     }

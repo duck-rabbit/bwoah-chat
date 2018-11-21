@@ -20,18 +20,8 @@ public class ClickToSendNickname : MonoBehaviour
     {
         if (!_nicknameInput.text.Equals(string.Empty))
         {
-            NicknameOperationsData nicknameData = new NicknameOperationsData();
+            NicknameChangeData nicknameData = new NicknameChangeData();
             nicknameData.NewNickname = _nicknameInput.text;
-
-            if (_user.nickname == string.Empty)
-            {
-                nicknameData.OperationType = NicknameOperation.Add;
-            }
-            else
-            {
-                nicknameData.OperationType = NicknameOperation.Change;
-                nicknameData.OldNickname = _user.nickname;
-            }
 
             Debug.Log(JsonConvert.SerializeObject(nicknameData));
             ChatClient.I.SendMessageToServer(nicknameData);

@@ -25,9 +25,12 @@ namespace bwoah_srv.Server
 
             _openWall = new ChatChannel(_server, 0, new ConcurrentDictionary<Socket, ChatUser>());
 
+            _server.UserSocketException += UserDisconnected;
+
             DataHandler.Instance.RegisterAction(typeof(ChatMessageData), HandleChatMessageData);
             DataHandler.Instance.RegisterAction(typeof(NewUserData), HandleNewUserData);
-            DataHandler.Instance.RegisterAction(typeof(NicknameOperationsData), HandleNicknameOperationsData);
+            DataHandler.Instance.RegisterAction(typeof(DisconnectUserData), HandleDisconnectUserData);
+            DataHandler.Instance.RegisterAction(typeof(NicknameChangeData), HandleNicknameChangeData);
         }
 
         private void HandleChatMessageData(AData receivedData, Socket socket)
@@ -47,85 +50,72 @@ namespace bwoah_srv.Server
         private void HandleNewUserData(AData receivedData, Socket socket)
         {
             NewUserData data = (NewUserData)receivedData;
+
+            if (_openWall.UserList.Keys.Any(userSocket => userSocket == socket))
+            {
+                return;
+            }
+
             ChatUser newUser = new ChatUser();
             newUser.Nickname = data.Nickname;
 
-            NicknameOperationsData sendNicknameToClientTables = new NicknameOperationsData();
-            sendNicknameToClientTables.OperationType = NicknameOperation.Add;
-            sendNicknameToClientTables.NewNickname = data.Nickname;
-
-            NetworkMessage networkMessage = new NetworkMessage(sendNicknameToClientTables);
-            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
-
             _openWall.UserList.AddOrUpdate(socket, newUser, (key, value) => _openWall.UserList[socket]);
+            _openWall.UserList.OrderBy(pair => pair.Value.Nickname);
 
             Message userJoinedMessage = new Message(_openWall, newUser, string.Format("{0} joined the chat", data.Nickname), true);
             userJoinedMessage.LogToConsole();
 
-            networkMessage = new NetworkMessage(userJoinedMessage.GetChatMessage());
+            NetworkMessage networkMessage = new NetworkMessage(userJoinedMessage.GetChatMessage());
             _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
 
             networkMessage = new NetworkMessage(_openWall.GetChannelData());
-            _server.SendData(networkMessage.ByteMessage, socket);
+            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
         }
 
-        private void HandleNicknameOperationsData(AData data, Socket socket)
+        private void HandleDisconnectUserData(AData receivedData, Socket socket)
         {
-            NicknameOperationsData nicknameOperationsData = (NicknameOperationsData)data;
+            UserDisconnected(socket);
+        }
 
-            switch (nicknameOperationsData.OperationType)
+        private void UserDisconnected(Socket socket)
+        {
+            ChatUser userToRemove;
+
+            _openWall.UserList.TryRemove(socket, out userToRemove);
+
+            if (userToRemove != null)
             {
-                case NicknameOperation.Add:
-                    AddUser(nicknameOperationsData, socket);
-                    break;
-                case NicknameOperation.Change:
-                    RenameUser(nicknameOperationsData, socket);
-                    break;
-                case NicknameOperation.Remove:
-                    RemoveUser(nicknameOperationsData, socket);
-                    break;
+                NetworkMessage networkMessage = new NetworkMessage(_openWall.GetChannelData());
+                _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
+
+                Message userLeftMessage = new Message(_openWall, userToRemove, string.Format("{0} left the chat", userToRemove.Nickname), true);
+                userLeftMessage.LogToConsole();
+
+                networkMessage = new NetworkMessage(userLeftMessage.GetChatMessage());
+                _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
             }
+        }
+
+        private void HandleNicknameChangeData(AData data, Socket socket)
+        {
+            NicknameChangeData nicknameOperationsData = (NicknameChangeData)data;
+            ChatUser user = GetUserBySocket(socket);
+
+            Message userChangedMessage = new Message(_openWall, user, string.Format("{0} changed their name to {1}", user.Nickname, nicknameOperationsData.NewNickname), true);
+            userChangedMessage.LogToConsole();
+
+            NetworkMessage networkMessage = new NetworkMessage(userChangedMessage.GetChatMessage());
+            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
+
+            user.Nickname = nicknameOperationsData.NewNickname;
+
+            networkMessage = new NetworkMessage(_openWall.GetChannelData());
+            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
         }
 
         private void HandleChannelData(AData data, Socket socket)
         {
 
-        }
-
-        public void AddUser(NicknameOperationsData data, Socket socket)
-        {
-            
-        }
-
-        public void RemoveUser(NicknameOperationsData data, Socket socket)
-        {
-            ChatUser userToRemove = GetUserBySocket(socket);
-
-            _openWall.UserList.TryRemove(socket, out userToRemove);
-
-            NetworkMessage networkMessage = new NetworkMessage(data);
-            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
-
-            Message userLeftMessage = new Message(_openWall, userToRemove, string.Format("{0} left the chat", data.OldNickname), true);
-            userLeftMessage.LogToConsole();
-
-            networkMessage = new NetworkMessage(userLeftMessage.GetChatMessage());
-            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
-        }
-
-        public void RenameUser(NicknameOperationsData data, Socket socket)
-        {
-            ChatUser user = GetUserBySocket(socket);
-            user.Nickname = data.NewNickname;
-
-            NetworkMessage networkMessage = new NetworkMessage(data);
-            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
-
-            Message userChangedMessage = new Message(_openWall, user, string.Format("{0} changed their name to {1}", data.OldNickname, data.NewNickname), true);
-            userChangedMessage.LogToConsole();
-
-            networkMessage = new NetworkMessage(userChangedMessage.GetChatMessage());
-            _openWall.SendDataToAllUsers(networkMessage.ByteMessage);
         }
 
         private ChatUser GetUserBySocket(Socket userSocket)

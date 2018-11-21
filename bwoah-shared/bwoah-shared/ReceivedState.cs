@@ -40,7 +40,7 @@ namespace bwoah_shared
 
             if (_networkMessage.Size < BUFFER_SIZE * _recievedOperationIndex)
             {
-                AData receivedData = _networkMessage.GetPayloadData();
+                AData receivedData = _networkMessage.GetPayloadData;
                 DataHandler.Instance.HandleData(receivedData, NetSocket);
                 WaitForData = false;
             }

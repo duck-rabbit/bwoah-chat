@@ -18,8 +18,6 @@ namespace bwoah_shared.DataClasses
 
         public AData ParseFromJson(string json)
         {
-            Console.WriteLine(json);
-            Console.WriteLine(GetType().ToString());
             return (AData)(JsonConvert.DeserializeObject(json, this.GetType()));
         }
     }

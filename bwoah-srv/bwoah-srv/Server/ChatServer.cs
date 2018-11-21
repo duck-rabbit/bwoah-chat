@@ -19,28 +19,24 @@ namespace bwoah_srv.Server
         public static int MAX_PENDING_CONNECTIONS = 100;
         public static int SOCKET_FLAGS = 0;
 
-        private IPEndPoint _localEndPoint;
-        private Socket _serverSocket;
+        public Action<Socket> UserSocketException { get; set; }
 
         public void StartServer()
         {
-            if (!IsIPCorrect())
-            {
-                return;
-            }
-
-            _localEndPoint = new IPEndPoint(INTERFACE_TO_LISTEN, LOCAL_PORT);
-
-            Console.WriteLine(String.Format("[Server] Starting Bwoah! Server on {0}", _localEndPoint.ToString()));
-
-            _serverSocket = new Socket(_localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
             try
             {
-                _serverSocket.Bind(_localEndPoint);
-                _serverSocket.Listen(MAX_PENDING_CONNECTIONS);
+                IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+                foreach (IPAddress localAddress in host.AddressList)
+                {
+                    IPEndPoint endPoint = new IPEndPoint(localAddress, LOCAL_PORT);
+                    Socket serverSocket = new Socket(localAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    serverSocket.Bind(endPoint);
 
-                StartAccept();
+                    Console.WriteLine(String.Format("[Server] Bwoah! Server listening on {0}", endPoint.ToString()));
+
+                    serverSocket.Listen(MAX_PENDING_CONNECTIONS);
+                    StartAccept(serverSocket);
+                }
             }
             catch (ArgumentNullException ae)
             {
@@ -56,19 +52,22 @@ namespace bwoah_srv.Server
             }
         }
 
-        private void StartAccept()
+        private void StartAccept(Socket socket)
         {
-            _serverSocket.BeginAccept(new AsyncCallback(AcceptCallback), _serverSocket);
+            socket.BeginAccept(new AsyncCallback(AcceptCallback), socket);
         }
 
         private void AcceptCallback(IAsyncResult asyncResult)
         {
             try
             {
-                StartAccept();
-
                 Socket listener = (Socket)asyncResult.AsyncState;
+
+                StartAccept(listener);
+                
                 Socket socket = listener.EndAccept(asyncResult);
+
+                Console.WriteLine("[Server] Connection with {0} established", socket.RemoteEndPoint.ToString());
 
                 StartReceiveData(new ReceivedState(socket));
             }
@@ -95,25 +94,42 @@ namespace bwoah_srv.Server
         {
             ReceivedState receivedState = (ReceivedState)receivedSocket.AsyncState;
 
-            int dataLength = receivedState.NetSocket.EndReceive(receivedSocket);
-
-            if (dataLength > 0)
+            try
             {
-                receivedState.HandleData();
+                int dataLength = receivedState.NetSocket.EndReceive(receivedSocket);
 
-                if (receivedState.WaitForData)
+                if (dataLength > 0)
                 {
-                    StartReceiveData(receivedState);
+                    receivedState.HandleData();
+
+                    if (receivedState.WaitForData)
+                    {
+                        StartReceiveData(receivedState);
+                    }
+                    else
+                    {
+                        StartReceiveData(new ReceivedState(receivedState.NetSocket));
+                    }
                 }
                 else
                 {
-                    StartReceiveData(new ReceivedState(receivedState.NetSocket));
+                    receivedState.NetSocket.Shutdown(SocketShutdown.Both);
+                    Console.WriteLine("[Server] Connection with {0} closed", receivedState.NetSocket.RemoteEndPoint.ToString());
+                    receivedState.NetSocket.Close();
                 }
             }
-            else
+            catch (ArgumentNullException ae)
             {
-                receivedState.NetSocket.Shutdown(SocketShutdown.Both);
-                receivedState.NetSocket.Close();
+                Console.WriteLine("[Server] ArgumentNullException : {0}", ae.ToString());
+            }
+            catch (SocketException se)
+            {
+                UserSocketException?.Invoke(receivedState.NetSocket);
+                Console.WriteLine("[Server] SocketException : {0}", se.ToString());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[Server] Unexpected exception : {0}", e.ToString());
             }
         }
 
@@ -130,37 +146,24 @@ namespace bwoah_srv.Server
         private void SendDataCallback(IAsyncResult connectionResult)
         {
             Socket socket = (Socket)connectionResult.AsyncState;
+
             try
             {
                 socket.EndSend(connectionResult);
             }
+            catch (ArgumentNullException ae)
+            {
+                Console.WriteLine("[Server] ArgumentNullException : {0}", ae.ToString());
+            }
+            catch (SocketException se)
+            {
+                UserSocketException?.Invoke(socket);
+                Console.WriteLine("[Server] SocketException : {0}", se.ToString());
+            }
             catch (Exception e)
             {
-                Console.WriteLine("[Server] {0}", e.ToString());
+                Console.WriteLine("[Server] Unexpected exception : {0}", e.ToString());
             }
-        }
-
-        private bool IsIPCorrect()
-        {
-            List<String> AllIPs = new List<string>();
-            IPHostEntry localHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (IPAddress address in localHostInfo.AddressList)
-            {
-                if (address.Equals(INTERFACE_TO_LISTEN))
-                    return true;
-
-                AllIPs.Add(address.ToString());
-            }
-
-            Console.WriteLine("[Server] Your specified IP is none of those present on the machine interfaces!");
-            Console.WriteLine("[Server] Your IP adresses:");
-
-            foreach (String ip in AllIPs)
-            {
-                Console.WriteLine(ip);
-            }
-
-            return false;
         }
     }
 }
