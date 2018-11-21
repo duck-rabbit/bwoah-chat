@@ -7,8 +7,8 @@ public class ReturnToWelcomeScreen : MonoBehaviour
 {
     [SerializeField] private GameObject _loadingScreen;
     [SerializeField] private GameObject _welcomeScreen;
-    [SerializeField] private Transform _messageContainer;
-    [SerializeField] private Transform _userContainer;
+    [SerializeField] private GameObject _manageChannelSpace;
+    [SerializeField] private GameObject _channelListHolder;
 
     private bool _triggerAction = false;
 
@@ -33,15 +33,20 @@ public class ReturnToWelcomeScreen : MonoBehaviour
 
     private void ShowWelcomeScreen()
     {
-        foreach (Transform userPrefab in _userContainer)
-        {
-            Destroy(userPrefab.gameObject);
-        }
-        foreach (Transform messagePrefab in _messageContainer)
-        {
-            Destroy(messagePrefab.gameObject);
-        }
         _loadingScreen.SetActive(false);
         _welcomeScreen.SetActive(true);
+
+        foreach (Channel channel in ChatUser.I.chatChannels.Values)
+        {
+            Destroy(channel.gameObject);
+        }
+        ChatUser.I.chatChannels.Clear();
+
+        foreach (Transform channelLabel in _channelListHolder.transform)
+        {
+            Destroy(channelLabel.gameObject);
+        }
+
+        _manageChannelSpace.SetActive(false);
     }
 }

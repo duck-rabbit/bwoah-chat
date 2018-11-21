@@ -16,7 +16,7 @@ namespace bwoah_shared
         {
             if (!_typeActionPairs.ContainsKey(dataType))
             {
-                _typeActionPairs.AddOrUpdate(dataType, action, (key, value) => _typeActionPairs[dataType]);
+                _typeActionPairs.TryAdd(dataType, action);
             }
             else
             {

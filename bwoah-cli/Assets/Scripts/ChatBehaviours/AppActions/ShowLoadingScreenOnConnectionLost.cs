@@ -8,6 +8,8 @@ using UnityEngine;
 public class ShowLoadingScreenOnConnectionLost : MonoBehaviour
 {
     [SerializeField] private GameObject _loadingScreen;
+    [SerializeField] private GameObject _manageChannelScreen;
+    [SerializeField] private GameObject _manageChannelSpace;
     private bool _triggerShowLoading = false;
     private bool _triggerHideLoading = false;
 
@@ -43,6 +45,7 @@ public class ShowLoadingScreenOnConnectionLost : MonoBehaviour
 
     private void ShowLoadingScreen()
     {
+        _manageChannelScreen.SetActive(false);
         _loadingScreen.SetActive(true);
     }
 
@@ -55,5 +58,6 @@ public class ShowLoadingScreenOnConnectionLost : MonoBehaviour
         newUserThread.Start();
 
         _loadingScreen.SetActive(false);
+        _manageChannelSpace.SetActive(true);
     }
 }

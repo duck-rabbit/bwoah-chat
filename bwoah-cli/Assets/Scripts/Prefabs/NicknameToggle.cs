@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ChatRoom
+public class NicknameToggle : MonoBehaviour
 {
-    public List<Text> nicknameList = new List<Text>();
+    public Text text;
+    public Toggle toggle;
 }

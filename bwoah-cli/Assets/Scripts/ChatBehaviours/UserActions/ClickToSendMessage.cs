@@ -21,7 +21,7 @@ public class ClickToSendMessage : MonoBehaviour
         {
             ChatMessageData messageData = new ChatMessageData();
             messageData.Content = _chatInput.text;
-            messageData.Channel = 0;
+            messageData.Channel = _user.CurrentChatChannel;
             messageData.Nickname = _user.nickname;
             ChatClient.I.SendMessageToServer(messageData);
             _chatInput.text = string.Empty;

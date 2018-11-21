@@ -10,6 +10,12 @@ public class ClickChangeNickButton : MonoBehaviour
 
     public void OnClickChangeNickButton()
     {
+        _nicknameInput.text = string.Empty;
         _changeNickButton.gameObject.SetActive(false);
+    }
+
+    public void OnClickCancelNickEditing()
+    {
+        _changeNickButton.gameObject.SetActive(true);
     }
 }

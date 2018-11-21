@@ -6,9 +6,7 @@ using bwoah_shared.DataClasses;
 
 public class ChatMessageDataHandler : DataOnUpdateHandler
 {
-    [SerializeField] private Message messagePrefab;
-    [SerializeField] private SystemMessage autoMessage;
-    [SerializeField] private Transform messageContainer;
+    private Dictionary<int, Queue<ChatMessageData>> _unreceivedMessages = new Dictionary<int, Queue<ChatMessageData>>();
 
     new private void OnEnable()
     {
@@ -16,22 +14,41 @@ public class ChatMessageDataHandler : DataOnUpdateHandler
         base.OnEnable();
     }
 
+    new private void Update()
+    {
+        base.Update();
+
+        if (_unreceivedMessages.Keys.Count > 0)
+        {
+            foreach (int key in _unreceivedMessages.Keys)
+            {
+                if (ChatUser.I.chatChannels.ContainsKey(key))
+                {
+                    int queueCount = _unreceivedMessages[key].Count;
+                    for (int i = 0; i < queueCount; i++)
+                    {
+                        ChatUser.I.chatChannels[key].AddMessage(_unreceivedMessages[key].Dequeue());
+                    }
+                }
+            }
+        }
+    }
+
     override protected void HandleData(AData data)
     {
         ChatMessageData messageData = (ChatMessageData)data;
 
-        if (!messageData.IsAutoMessage)
+        if (ChatUser.I.chatChannels.ContainsKey(messageData.Channel))
         {
-            Message message = Instantiate(messagePrefab, messageContainer);
-            message._timeText.text = messageData.Timestamp.ToLocalTime().ToLongTimeString();
-            message._nicknameText.text = messageData.Nickname;
-            message._messageText.text = messageData.Content;
+            ChatUser.I.chatChannels[messageData.Channel].AddMessage(messageData);
         }
-        else if (messageData.IsAutoMessage)
+        else
         {
-            SystemMessage message = Instantiate(autoMessage, messageContainer);
-            message._timeText.text = messageData.Timestamp.ToLocalTime().ToLongTimeString();
-            message._messageText.text = messageData.Content;
+            if (!_unreceivedMessages.ContainsKey(messageData.Channel))
+            {
+                _unreceivedMessages.Add(messageData.Channel, new Queue<ChatMessageData>());
+            }
+            _unreceivedMessages[messageData.Channel].Enqueue(messageData);
         }
     }
 }

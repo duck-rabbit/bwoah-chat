@@ -8,8 +8,10 @@ using UnityEngine.UI;
 
 public class ChannelDataHandler : DataOnUpdateHandler
 {
-    [SerializeField] private Text _userPrefab;
-    [SerializeField] private Transform _userContainer;
+    [SerializeField] private Channel _channelPrefab;
+    [SerializeField] private Transform _channelsHolder;
+    [SerializeField] private ChannelButton _channelButtonPrefab;
+    [SerializeField] private Transform _channelButtonsHolder;
 
     private ChatUser _user;
 
@@ -29,50 +31,21 @@ public class ChannelDataHandler : DataOnUpdateHandler
         _user = ChatUser.I;
     }
 
-    new private void Update()
-    {
-        base.Update();
-    }
-
     override protected void HandleData(AData data)
     {
         ChannelData messageData = (ChannelData)data;
 
-        if (!_user.chatRooms.ContainsKey(messageData.ChannelId))
+        if (!_user.chatChannels.ContainsKey(messageData.ChannelId))
         {
-            _user.chatRooms.Add(messageData.ChannelId, new ChatRoom());
+            Channel newChannel = Instantiate(_channelPrefab, _channelsHolder);
+            newChannel.gameObject.SetActive(_user.CurrentChatChannel == messageData.ChannelId);
+            newChannel.ChannelName = messageData.ChannelName;
+            _user.chatChannels.Add(messageData.ChannelId, newChannel);
+            ChannelButton newChannelButton = Instantiate(_channelButtonPrefab, _channelButtonsHolder);
+            newChannelButton.channelId = messageData.ChannelId;
+            newChannelButton.channelName.text = messageData.ChannelName;
         }
 
-        foreach (Transform userPrefab in _userContainer)
-        {
-            Destroy(userPrefab.gameObject);
-        }
-
-        _user.chatRooms[messageData.ChannelId].nicknameList.Clear();
-
-        if (messageData.UserNicknames != null)
-        {
-            foreach (string nickname in messageData.UserNicknames)
-            {
-                Text nicknameText = Instantiate(_userPrefab, _userContainer);
-                string textToPut;
-                if (nickname.Equals(string.Empty))
-                {
-                    textToPut = "<i>Unknown user</i>";
-                }
-                else if (nickname.Equals(_user.nickname))
-                {
-                    textToPut = nickname;
-                }
-                else
-                {
-                    textToPut = nickname;
-                }
-
-                nicknameText.text = textToPut;
-
-                _user.chatRooms[messageData.ChannelId].nicknameList.Add(nicknameText);
-            }
-        }
+        _user.chatChannels[messageData.ChannelId].SetNicknameList(messageData.UserNicknames);
     }
 }

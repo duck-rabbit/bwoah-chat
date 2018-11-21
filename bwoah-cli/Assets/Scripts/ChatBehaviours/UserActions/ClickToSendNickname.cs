@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 public class ClickToSendNickname : MonoBehaviour
 {
     [SerializeField] private InputField _nicknameInput;
+    [SerializeField] private Button _changeNickButton;
     private ChatUser _user;
 
     private void Start()
@@ -28,6 +29,7 @@ public class ClickToSendNickname : MonoBehaviour
             ChatClient.I.SendMessageToServer(nicknameData);
 
             _user.nickname = _nicknameInput.text;
+            _changeNickButton.gameObject.SetActive(true);
         }
     }
 }

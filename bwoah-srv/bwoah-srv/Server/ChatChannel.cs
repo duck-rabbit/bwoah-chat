@@ -18,15 +18,22 @@ namespace bwoah_srv.Server
         private IServer _server;
 
         public int ChannelId { get; private set; }
+        public String ChannelName { get; private set; }
         public ConcurrentDictionary<Socket, ChatUser> UserList { get; private set; }
         public ConcurrentQueue<Message> MessageCache { get; private set; }
 
-        public ChatChannel(IServer server, int id, ConcurrentDictionary<Socket, ChatUser> userList)
+        public ChatChannel(IServer server, int id, String name, ConcurrentDictionary<Socket, ChatUser> userList, ChatUser creator)
         {
             _server = server;
             ChannelId = id;
+            ChannelName = name;
             UserList = userList;
             MessageCache = new ConcurrentQueue<Message>();
+
+            Message channelCreationMessage = new Message(this, creator, String.Format("User {0} created channel {1}", creator.Nickname, name), true);
+            Console.WriteLine(channelCreationMessage.ToString());
+
+            CacheMessage(channelCreationMessage);
         }
 
         public void SendDataToAllUsers(byte[] byteData)
@@ -41,6 +48,7 @@ namespace bwoah_srv.Server
         {
             ChannelData channelData = new ChannelData();
             channelData.ChannelId = ChannelId;
+            channelData.ChannelName = ChannelName;
             channelData.UserNicknames = UserList.Values.Select(chatUser => chatUser.Nickname).ToArray();
 
             return channelData;
