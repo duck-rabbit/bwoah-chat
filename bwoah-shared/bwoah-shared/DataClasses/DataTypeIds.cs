@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace bwoah_shared.DataClasses
 {
@@ -21,11 +19,12 @@ namespace bwoah_shared.DataClasses
     {
         public static readonly List<DataTypeId> dataTypeIds = new List<DataTypeId>
         {
-            new DataTypeId(0, typeof(ChatMessageData)),
-            new DataTypeId(1, typeof(NewUserData)),
-            new DataTypeId(2, typeof(DisconnectUserData)),
-            new DataTypeId(3, typeof(ChannelData)),
-            new DataTypeId(4, typeof(NicknameChangeData)),
+            new DataTypeId(1, typeof(ChatMessageData)),
+            new DataTypeId(2, typeof(NewUserData)),
+            new DataTypeId(3, typeof(DisconnectUserData)),
+            new DataTypeId(4, typeof(ChannelData)),
+            new DataTypeId(5, typeof(NicknameChangeData)),
+            new DataTypeId(255, typeof(PingData)),
         };
 
         public static byte GetIdByType(Type type)

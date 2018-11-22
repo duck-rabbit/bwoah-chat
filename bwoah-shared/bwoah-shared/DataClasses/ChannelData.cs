@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using bwoah_shared.Utils;
-
-namespace bwoah_shared.DataClasses
+﻿namespace bwoah_shared.DataClasses
 {
     public class ChannelData : AData
     {

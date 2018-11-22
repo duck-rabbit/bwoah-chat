@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
-using bwoah_shared.DataClasses;
+﻿using bwoah_shared.DataClasses;
 using bwoah_shared.Utils;
+using System;
+using System.Collections.Concurrent;
+using System.Net.Sockets;
 
 namespace bwoah_shared
 {

@@ -1,13 +1,10 @@
 ﻿using bwoah_shared;
 using bwoah_shared.DataClasses;
-using bwoah_shared.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace bwoah_srv.Server
 {
@@ -70,6 +67,7 @@ namespace bwoah_srv.Server
             DataHandler.Instance.RegisterAction(typeof(DisconnectUserData), HandleDisconnectUserData);
             DataHandler.Instance.RegisterAction(typeof(ChannelData), HandleChannelData);
             DataHandler.Instance.RegisterAction(typeof(NicknameChangeData), HandleNicknameChangeData);
+            DataHandler.Instance.RegisterAction(typeof(PingData), HandlePingData);
         }
 
         private void HandleChatMessageData(AData receivedData, Socket socket)
@@ -205,17 +203,17 @@ namespace bwoah_srv.Server
             }
             else
             {
-                CreateNewChannel(channelData);
+                CreateNewChannel(channelData, socket);
             }
         }
 
-        private void CreateNewChannel(ChannelData channelData)
+        private void CreateNewChannel(ChannelData channelData, Socket creatorSocket)
         {
             ConcurrentDictionary<Socket, ChatUser> newChannelUsers = new ConcurrentDictionary<Socket, ChatUser>();
 
             int channelIndex = NextChannelIndex;
 
-            _channelList.TryAdd(channelIndex, new ChatChannel(_server, channelIndex, channelData.ChannelName, newChannelUsers, OpenWall.UserList[socket]));
+            _channelList.TryAdd(channelIndex, new ChatChannel(_server, channelIndex, channelData.ChannelName, newChannelUsers, OpenWall.UserList[creatorSocket]));
 
             foreach (string nickname in channelData.UserNicknames)
             {
@@ -281,6 +279,12 @@ namespace bwoah_srv.Server
                     channel.SendDataToAllUsers(networkMessage.ByteMessage);
                 }
             }
+        }
+
+        private void HandlePingData(AData data, Socket socket)
+        {
+            NetworkMessage networkMessage = new NetworkMessage(data);
+            _server.SendData(networkMessage.ByteMessage, socket);
         }
 
         private ChatUser GetUserBySocket(Socket userSocket)

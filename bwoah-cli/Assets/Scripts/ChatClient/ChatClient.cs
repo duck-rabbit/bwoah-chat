@@ -15,6 +15,7 @@ namespace bwoah_cli
     {
         public static int PORT_NUMBER = 13131;
         public static int SOCKET_FLAGS = 0;
+        public static int CONNECTION_CHECK_INTERVAL = 5; 
         public static int RECONNECTION_INTERVAL = 1;
         public static int RECONNECTION_ATTEMPTS = 30;
 
@@ -29,11 +30,17 @@ namespace bwoah_cli
         private ManualResetEventSlim _processPreviousReceive = new ManualResetEventSlim(true);
         private int _reconnectionAttempts = 0;
 
+        private Thread _pingServerThread;
+        private bool _pingReturned = true;
+
         private bool _appIsQuitting = false;
 
         private IEnumerator OnApplicationQuit()
         {
             _appIsQuitting = true;
+
+            if (_pingServerThread != null)
+                _pingServerThread.Abort();
 
             if (_clientSocket != null)
             {
@@ -48,6 +55,16 @@ namespace bwoah_cli
             }
 
             yield return null;
+        }
+
+        public void OnEnable()
+        {
+            DataHandler.Instance.RegisterAction(typeof(PingData), ReturnPing);
+        }
+
+        public void OnDisable()
+        {
+            DataHandler.Instance.UnregisterAction(typeof(PingData), ReturnPing);
         }
 
         public void ConnectToServer(IPAddress serverAddress)
@@ -85,6 +102,9 @@ namespace bwoah_cli
                 Debug.Log("Connected to server.");
 
                 StartReceiveData(new ReceivedState(connectedSocket));
+
+                _pingReturned = true;
+                PingServer();
             }
             catch (ArgumentNullException ae)
             {
@@ -206,8 +226,34 @@ namespace bwoah_cli
             }
         }
 
+        private void PingServer()
+        {
+            if (!_pingReturned)
+            {
+                ConnectionLost();
+                return;
+            }
+
+            Thread.Sleep(CONNECTION_CHECK_INTERVAL * 1000);
+
+            SendMessageToServer(new PingData());
+
+            _pingReturned = false;
+
+            _pingServerThread = new Thread(PingServer);
+            _pingServerThread.Start();
+        }
+
+        private void ReturnPing(AData data, Socket socket)
+        {
+            _pingReturned = true;
+        }
+
         private void ConnectionLost()
         {
+            if (_pingServerThread != null)
+                _pingServerThread.Abort();
+
             if (!_appIsQuitting)
             {
                 if (OnConnectionLost != null)

@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using bwoah_shared.Utils;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using System;
 
 namespace bwoah_shared.DataClasses
 {
