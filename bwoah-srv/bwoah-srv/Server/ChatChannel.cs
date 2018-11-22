@@ -30,7 +30,7 @@ namespace bwoah_srv.Server
             UserList = userList;
             MessageCache = new ConcurrentQueue<Message>();
 
-            Message channelCreationMessage = new Message(this, creator, String.Format("User {0} created channel {1}", creator.Nickname, name), true);
+            Message channelCreationMessage = new Message(this, creator, String.Format("{0} created channel {1}", creator.Nickname, name), true);
             Console.WriteLine(channelCreationMessage.ToString());
 
             CacheMessage(channelCreationMessage);

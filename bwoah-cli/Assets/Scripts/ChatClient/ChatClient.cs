@@ -67,8 +67,6 @@ namespace bwoah_cli
 
         public void ConnectCallback(IAsyncResult connectionResult)
         {
-            
-
             Socket connectedSocket = (Socket)connectionResult.AsyncState;
 
             try
@@ -135,7 +133,6 @@ namespace bwoah_cli
             }
             catch (ArgumentNullException ae)
             {
-                //StartReceiveData(new ReceivedState(receivedState.NetSocket));
                 Debug.LogError(String.Format("ArgumentNullException : {0}", ae.ToString()));
             }
             catch (SocketException se)
@@ -146,7 +143,6 @@ namespace bwoah_cli
             }
             catch (Exception e)
             {
-                //StartReceiveData(new ReceivedState(receivedState.NetSocket));
                 Debug.LogError(String.Format("Unexpected exception : {0}", e.ToString()));
             }
         }

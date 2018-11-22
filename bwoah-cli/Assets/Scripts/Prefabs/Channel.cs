@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class Channel : MonoBehaviour
 {
+    public ChannelData ChannelData { get; set; }
+
     [SerializeField] private Transform _nicknameHolder;
     [SerializeField] private Transform _messageHolder;
     [SerializeField] private NicknameToggle _nicknamePrefab;
@@ -15,11 +17,8 @@ public class Channel : MonoBehaviour
     private List<GameObject> _messageList = new List<GameObject>();
 
     public List<NicknameToggle> NicknameList { get { return _nicknameList; } }
-    public string ChannelName { get; set; }
 
-    public ChannelData channelData { get; set; }
-
-    public ChannelButton channelButton { get; set; }
+    public ChannelButton ChannelButton { get; set; }
 
     public void SetNicknameList(string[] userNicknames)
     {

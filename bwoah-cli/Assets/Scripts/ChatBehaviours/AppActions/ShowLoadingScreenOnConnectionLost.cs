@@ -64,9 +64,9 @@ public class ShowLoadingScreenOnConnectionLost : MonoBehaviour
 
         foreach (Channel channel in ChatUser.I.chatChannels.Values)
         {
-            if (channel.channelData.ChannelId != 0)
+            if (channel.ChannelData.ChannelId != 0)
             {
-                channelDataCache.Add(channel.channelData);
+                channelDataCache.Add(channel.ChannelData);
                 Destroy(channel.gameObject);
 
                 channelsToRemove.Add(channel);
@@ -75,7 +75,7 @@ public class ShowLoadingScreenOnConnectionLost : MonoBehaviour
 
         foreach (Channel channel in channelsToRemove)
         {
-            ChatUser.I.chatChannels.Remove(channel.channelData.ChannelId);
+            ChatUser.I.chatChannels.Remove(channel.ChannelData.ChannelId);
         }
 
         foreach (Transform channelLabel in _channelListHolder.transform)

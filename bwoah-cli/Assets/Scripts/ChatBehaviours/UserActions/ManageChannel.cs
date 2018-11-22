@@ -35,7 +35,7 @@ public class ManageChannel : MonoBehaviour
         _createNewChannel = createNewChannel;
         Channel activeChannel = ChatUser.I.chatChannels[ChatUser.I.CurrentChatChannel];
 
-        _channelName.text = _createNewChannel ? string.Empty : activeChannel.ChannelName;
+        _channelName.text = _createNewChannel ? string.Empty : activeChannel.ChannelData.ChannelName;
 
         foreach (NicknameToggle chatUser in ChatUser.I.chatChannels[0].NicknameList)
         {

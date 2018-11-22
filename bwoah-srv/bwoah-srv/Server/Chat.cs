@@ -201,48 +201,60 @@ namespace bwoah_srv.Server
             
             if (_channelList.Keys.Contains(channelData.ChannelId) && channelData.ChannelId != 0)
             {
-                _channelList[channelData.ChannelId].ChannelName = channelData.ChannelName;
-
-                KeyValuePair<Socket, ChatUser>[] usersToRemovePairs = _channelList[channelData.ChannelId].UserList.Where(keyValuePair => !channelData.UserNicknames.Contains(keyValuePair.Value.Nickname)).ToArray();
-
-                String[] usersToAddNames = channelData.UserNicknames.Where(nickname => !_channelList[channelData.ChannelId].UserList.Select(keyValuePair => keyValuePair.Value.Nickname).Contains(nickname)).ToArray();
-
-                KeyValuePair<Socket, ChatUser>[] usersToAddPairs = OpenWall.UserList.Where(keyValuePair => usersToAddNames.Contains(keyValuePair.Value.Nickname)).ToArray();
-
-                foreach (KeyValuePair<Socket, ChatUser> keyValuePair in usersToRemovePairs)
-                {
-                    RemoveUserFromChannel(keyValuePair.Key, _channelList[channelData.ChannelId]);
-                }
-
-                foreach (KeyValuePair<Socket, ChatUser> keyValuePair in usersToAddPairs)
-                {
-                    AddUserToChannel(keyValuePair.Key, keyValuePair.Value, _channelList[channelData.ChannelId]);
-                }
-
-                NetworkMessage networkMessage = new NetworkMessage(_channelList[channelData.ChannelId].GetChannelData());
-                _channelList[channelData.ChannelId].SendDataToAllUsers(networkMessage.ByteMessage);
+                UpdateChannel(channelData);
             }
             else
             {
-                ConcurrentDictionary<Socket, ChatUser> newChannelUsers = new ConcurrentDictionary<Socket, ChatUser>();
-
-                int channelIndex = NextChannelIndex;
-
-                _channelList.TryAdd(channelIndex, new ChatChannel(_server, channelIndex, channelData.ChannelName, newChannelUsers, OpenWall.UserList[socket]));
-
-                foreach (string nickname in channelData.UserNicknames)
-                {
-                    try
-                    {
-                        KeyValuePair<Socket, ChatUser> userPair = OpenWall.UserList.Where(keyValuePair => keyValuePair.Value.Nickname == nickname).ToArray()[0];
-                        AddUserToChannel(userPair.Key, userPair.Value, _channelList[channelIndex]);
-                    }
-                    catch { };
-                }
-
-                NetworkMessage networkMessage = new NetworkMessage(_channelList[channelIndex].GetChannelData());
-                _channelList[channelIndex].SendDataToAllUsers(networkMessage.ByteMessage);
+                CreateNewChannel(channelData);
             }
+        }
+
+        private void CreateNewChannel(ChannelData channelData)
+        {
+            ConcurrentDictionary<Socket, ChatUser> newChannelUsers = new ConcurrentDictionary<Socket, ChatUser>();
+
+            int channelIndex = NextChannelIndex;
+
+            _channelList.TryAdd(channelIndex, new ChatChannel(_server, channelIndex, channelData.ChannelName, newChannelUsers, OpenWall.UserList[socket]));
+
+            foreach (string nickname in channelData.UserNicknames)
+            {
+                try
+                {
+                    KeyValuePair<Socket, ChatUser> userPair = OpenWall.UserList.Where(keyValuePair => keyValuePair.Value.Nickname == nickname).ToArray()[0];
+                    AddUserToChannel(userPair.Key, userPair.Value, _channelList[channelIndex]);
+                }
+                catch { };
+            }
+
+            NetworkMessage networkMessage = new NetworkMessage(_channelList[channelIndex].GetChannelData());
+            _channelList[channelIndex].SendDataToAllUsers(networkMessage.ByteMessage);
+        }
+
+        private void UpdateChannel(ChannelData channelData)
+        {
+            int channelId = channelData.ChannelId;
+
+            _channelList[channelId].ChannelName = channelData.ChannelName;
+
+            KeyValuePair<Socket, ChatUser>[] usersToRemovePairs = _channelList[channelId].UserList.Where(keyValuePair => !channelData.UserNicknames.Contains(keyValuePair.Value.Nickname)).ToArray();
+
+            String[] usersToAddNames = channelData.UserNicknames.Where(nickname => !_channelList[channelId].UserList.Select(keyValuePair => keyValuePair.Value.Nickname).Contains(nickname)).ToArray();
+
+            KeyValuePair<Socket, ChatUser>[] usersToAddPairs = OpenWall.UserList.Where(keyValuePair => usersToAddNames.Contains(keyValuePair.Value.Nickname)).ToArray();
+
+            foreach (KeyValuePair<Socket, ChatUser> keyValuePair in usersToRemovePairs)
+            {
+                RemoveUserFromChannel(keyValuePair.Key, _channelList[channelId]);
+            }
+
+            foreach (KeyValuePair<Socket, ChatUser> keyValuePair in usersToAddPairs)
+            {
+                AddUserToChannel(keyValuePair.Key, keyValuePair.Value, _channelList[channelId]);
+            }
+
+            NetworkMessage networkMessage = new NetworkMessage(_channelList[channelId].GetChannelData());
+            _channelList[channelId].SendDataToAllUsers(networkMessage.ByteMessage);
         }
 
         private void HandleNicknameChangeData(AData data, Socket socket)

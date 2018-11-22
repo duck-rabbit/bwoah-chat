@@ -39,18 +39,17 @@ public class ChannelDataHandler : DataOnUpdateHandler
         {
             Channel newChannel = Instantiate(_channelPrefab, _channelsHolder);
             newChannel.gameObject.SetActive(_user.CurrentChatChannel == messageData.ChannelId);
-            newChannel.channelData = messageData;
+            newChannel.ChannelData = messageData;
             
             ChannelButton newChannelButton = Instantiate(_channelButtonPrefab, _channelButtonsHolder);
             newChannelButton.channelId = messageData.ChannelId;
             newChannelButton.channelName.text = messageData.ChannelName;
 
-            newChannel.channelButton = newChannelButton;
+            newChannel.ChannelButton = newChannelButton;
             _user.chatChannels.Add(messageData.ChannelId, newChannel);
         }
 
-        _user.chatChannels[messageData.ChannelId].ChannelName = messageData.ChannelName;
-        _user.chatChannels[messageData.ChannelId].channelButton.channelName.text = messageData.ChannelName;
+        _user.chatChannels[messageData.ChannelId].ChannelButton.channelName.text = messageData.ChannelName;
         _user.chatChannels[messageData.ChannelId].SetNicknameList(messageData.UserNicknames);
     }
 }
