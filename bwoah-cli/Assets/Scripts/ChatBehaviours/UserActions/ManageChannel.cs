@@ -11,6 +11,7 @@ public class ManageChannel : MonoBehaviour
     [SerializeField] private GameObject _channelManager;
     [SerializeField] private InputField _channelName;
     [SerializeField] private Transform _usersHolder;
+    [SerializeField] private Text _incorrectDataInfo;
 
     private List<NicknameToggle> _nicknameToggles = new List<NicknameToggle>();
     private bool _createNewChannel;
@@ -29,6 +30,8 @@ public class ManageChannel : MonoBehaviour
 
     public void OpenChannelManager(bool createNewChannel)
     {
+        _incorrectDataInfo.gameObject.SetActive(false);
+
         _createNewChannel = createNewChannel;
         Channel activeChannel = ChatUser.I.chatChannels[ChatUser.I.CurrentChatChannel];
 
@@ -45,6 +48,7 @@ public class ManageChannel : MonoBehaviour
                     NicknameToggle[] currentChannelUser = activeChannel.NicknameList.Where(toggle => toggle.text == newUserToggle.text).ToArray();
                     if (currentChannelUser.Length > 0)
                     {
+                        Debug.Log("Go!");
                         currentChannelUser[0].toggle.isOn = true;
                     }
                 }
@@ -58,6 +62,12 @@ public class ManageChannel : MonoBehaviour
 
     public void ClickAcceptButton()
     {
+        if (_channelName.text.Equals(string.Empty))
+        {
+            _incorrectDataInfo.gameObject.SetActive(true);
+            return;
+        }
+
         ChannelData channelData = new ChannelData();
 
         if (!_createNewChannel)

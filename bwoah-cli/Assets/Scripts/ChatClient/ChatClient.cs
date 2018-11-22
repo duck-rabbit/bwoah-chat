@@ -13,9 +13,10 @@ namespace bwoah_cli
 {
     public class ChatClient : UnitySingleton<ChatClient>
     {
+        public static int PORT_NUMBER = 13131;
         public static int SOCKET_FLAGS = 0;
         public static int RECONNECTION_INTERVAL = 1;
-        public static int RECONNECTION_ATTEMPTS = 10;
+        public static int RECONNECTION_ATTEMPTS = 30;
 
         public Action OnConnectionLost;
         public Action OnUltimateConnectionLost;
@@ -49,9 +50,9 @@ namespace bwoah_cli
             yield return null;
         }
 
-        public void ConnectToServer(IPAddress serverAddress, Int32 portNumber)
+        public void ConnectToServer(IPAddress serverAddress)
         {
-            _serverEndPoint = new IPEndPoint(serverAddress, portNumber);
+            _serverEndPoint = new IPEndPoint(serverAddress, PORT_NUMBER);
 
             ConnectToServer();
         }

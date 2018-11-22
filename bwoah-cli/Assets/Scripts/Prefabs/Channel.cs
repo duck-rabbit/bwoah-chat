@@ -17,6 +17,10 @@ public class Channel : MonoBehaviour
     public List<NicknameToggle> NicknameList { get { return _nicknameList; } }
     public string ChannelName { get; set; }
 
+    public ChannelData channelData { get; set; }
+
+    public ChannelButton channelButton { get; set; }
+
     public void SetNicknameList(string[] userNicknames)
     {
         foreach (NicknameToggle userObject in _nicknameList)

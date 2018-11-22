@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using bwoah_shared.Utils;
 using bwoah_shared;
 using bwoah_shared.DataClasses;
+using System.Net.NetworkInformation;
 
 namespace bwoah_srv.Server
 {
@@ -25,32 +26,46 @@ namespace bwoah_srv.Server
 
         public void StartServer()
         {
-            try
+            if (NetworkInterface.GetIsNetworkAvailable())
             {
-                IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-                foreach (IPAddress localAddress in host.AddressList)
+                try
                 {
-                    IPEndPoint endPoint = new IPEndPoint(localAddress, LOCAL_PORT);
-                    Socket serverSocket = new Socket(localAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                    serverSocket.Bind(endPoint);
+                    IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+                    List<IPAddress> localAddresses = new List<IPAddress>();
+                    localAddresses.AddRange(host.AddressList);
+                    localAddresses.Add(IPAddress.Parse("127.0.0.1"));
 
-                    Console.WriteLine(String.Format("[Server] Bwoah! Server listening on {0}", endPoint.ToString()));
+                    foreach (IPAddress localAddress in localAddresses)
+                    {
+                        IPEndPoint endPoint = new IPEndPoint(localAddress, LOCAL_PORT);
+                        if (endPoint.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            Socket serverSocket = new Socket(localAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                            serverSocket.Bind(endPoint);
 
-                    serverSocket.Listen(MAX_PENDING_CONNECTIONS);
-                    StartAccept(serverSocket);
+                            Console.WriteLine(String.Format("[Server] Bwoah! Server listening on {0}", endPoint.ToString()));
+
+                            serverSocket.Listen(MAX_PENDING_CONNECTIONS);
+                            StartAccept(serverSocket);
+                        }
+                    }
+                }
+                catch (ArgumentNullException ae)
+                {
+                    Console.WriteLine("[Server] ArgumentNullException : {0}", ae.ToString());
+                }
+                catch (SocketException se)
+                {
+                    Console.WriteLine("[Server] SocketException : {0}", se.ToString());
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("[Server] Unexpected exception : {0}", e.ToString());
                 }
             }
-            catch (ArgumentNullException ae)
+            else
             {
-                Console.WriteLine("[Server] ArgumentNullException : {0}", ae.ToString());
-            }
-            catch (SocketException se)
-            {
-                Console.WriteLine("[Server] SocketException : {0}", se.ToString());
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("[Server] Unexpected exception : {0}", e.ToString());
+                Console.WriteLine("[Server] there is no network connection! Bwoah! server will close.");
             }
         }
 

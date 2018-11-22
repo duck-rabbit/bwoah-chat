@@ -18,7 +18,7 @@ namespace bwoah_srv.Server
         private IServer _server;
 
         public int ChannelId { get; private set; }
-        public String ChannelName { get; private set; }
+        public String ChannelName { get; set; }
         public ConcurrentDictionary<Socket, ChatUser> UserList { get; private set; }
         public ConcurrentQueue<Message> MessageCache { get; private set; }
 

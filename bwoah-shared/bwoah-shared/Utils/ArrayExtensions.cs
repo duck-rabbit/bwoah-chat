@@ -24,7 +24,6 @@ namespace bwoah_shared.Utils
             T[] result = new T[data.Length + array.Length];
             Array.Copy(data, result, data.Length);
             Array.Copy(array, 0, result, data.Length, array.Length);
-            Console.WriteLine("ADD: " + data.Length + " + " + array.Length + " = " + result.Length);
             return result;
         }
     }

@@ -11,9 +11,9 @@ using System.Threading;
 public class ConnectToServer : MonoBehaviour
 {
     [SerializeField] private List<InputField> _addressByteTexts;
-    [SerializeField] private InputField _portText;
     [SerializeField] private InputField _nickname;
     [SerializeField] private Toggle _dataOnStart;
+    [SerializeField] private Text _incorrectDataInfo;
     [SerializeField] private GameObject _welcomeScreenObject;
     [SerializeField] private GameObject _loadingScreenObject;
 
@@ -25,20 +25,25 @@ public class ConnectToServer : MonoBehaviour
             {
                 _addressByteTexts[i].text = PlayerPrefs.GetString(string.Format("address{0}", i));
             }
-            _portText.text = PlayerPrefs.GetString("port");
             _nickname.text = PlayerPrefs.GetString("nickname");
         }
     }
 
     public void OnButtonPressed()
     {
+        if (!IsDataCorrect())
+        {
+            _incorrectDataInfo.gameObject.SetActive(true);
+            return;
+        }
+        else
+        {
+            _incorrectDataInfo.gameObject.SetActive(false);
+        }
+
         string ipAddressString = string.Empty;
         foreach (InputField addressByteText in _addressByteTexts)
         {
-            if (int.Parse(addressByteText.text) < 0 || int.Parse(addressByteText.text) > 255)
-            {
-                return;
-            }
             if (!ipAddressString.Equals(string.Empty))
             {
                 ipAddressString += (".");
@@ -48,19 +53,10 @@ public class ConnectToServer : MonoBehaviour
         }
         IPAddress serverAddress = IPAddress.Parse(ipAddressString);
 
-        Debug.Log(ipAddressString);
-
-        int portNumber = int.Parse(_portText.text);
-
-        if (portNumber < 0 && portNumber > 65535)
-        {
-            return;
-        }
-
         _welcomeScreenObject.SetActive(false);
         _loadingScreenObject.SetActive(true);
 
-        ChatClient.I.ConnectToServer(serverAddress, portNumber);
+        ChatClient.I.ConnectToServer(serverAddress);
 
         NewUserData newUserData = new NewUserData();
         newUserData.Nickname = _nickname.text;
@@ -76,12 +72,32 @@ public class ConnectToServer : MonoBehaviour
             {
                 PlayerPrefs.SetString(string.Format("address{0}", i), _addressByteTexts[i].text);
             }
-            PlayerPrefs.SetString("port", _portText.text);
             PlayerPrefs.SetString("nickname", _nickname.text);
         }
         else
         {
             PlayerPrefs.DeleteAll();
         }
+    }
+
+    private bool IsDataCorrect()
+    {
+        foreach (InputField addressByteText in _addressByteTexts)
+        {
+            if (addressByteText.text.Equals(string.Empty))
+            {
+                return false;
+            }
+            else if (int.Parse(addressByteText.text) < 0 || int.Parse(addressByteText.text) > 255)
+            {
+                return false;
+            }
+        }
+        if (_nickname.text.Equals(string.Empty))
+        {
+            return false;
+        }
+        
+        return true;
     }
 }

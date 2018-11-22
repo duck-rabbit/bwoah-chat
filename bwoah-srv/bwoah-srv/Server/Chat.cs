@@ -15,8 +15,6 @@ namespace bwoah_srv.Server
     {
         private IServer _server;
 
-        //private ConcurrentDictionary<Socket, ChatUser> _userList = new ConcurrentDictionary<Socket, ChatUser>();
-
         private ConcurrentDictionary<int, ChatChannel> _channelList = new ConcurrentDictionary<int, ChatChannel>();
 
         private int _channelIndexValue = 0;
@@ -115,6 +113,9 @@ namespace bwoah_srv.Server
             newUser.Nickname = data.Nickname;
 
             AddUserToChannel(socket, newUser, OpenWall);
+
+            NetworkMessage networkMessage = new NetworkMessage(OpenWall.GetChannelData());
+            OpenWall.SendDataToAllUsers(networkMessage.ByteMessage);
         }
 
         private void AddUserToChannel(Socket userSocket, ChatUser user, ChatChannel channel)
@@ -135,9 +136,6 @@ namespace bwoah_srv.Server
 
             NetworkMessage networkMessage = new NetworkMessage(userJoinedMessage.GetChatMessage());
             channel.SendDataToAllUsers(networkMessage.ByteMessage);
-
-            networkMessage = new NetworkMessage(channel.GetChannelData());
-            channel.SendDataToAllUsers(networkMessage.ByteMessage);
         }
 
         private void HandleDisconnectUserData(AData receivedData, Socket socket)
@@ -147,11 +145,23 @@ namespace bwoah_srv.Server
 
         private void UserDisconnected(Socket socket)
         {
+            List<int> userChannelIds = new List<int>();
+
             foreach (ChatChannel channel in _channelList.Values)
             {
                 if (channel.UserList.Keys.Contains(socket))
                 {
                     RemoveUserFromChannel(socket, channel);
+                    userChannelIds.Add(channel.ChannelId);
+                }
+            }
+
+            foreach (int userChannelId in userChannelIds)
+            {
+                if (_channelList.Keys.Contains(userChannelId))
+                {
+                    NetworkMessage networkMessage = new NetworkMessage(_channelList[userChannelId].GetChannelData());
+                    _channelList[userChannelId].SendDataToAllUsers(networkMessage.ByteMessage);
                 }
             }
         }
@@ -163,6 +173,11 @@ namespace bwoah_srv.Server
 
             if (userToRemove != null)
             {
+                Message userLeftMessage = new Message(channel, userToRemove, string.Format("{0} left {1}", userToRemove.Nickname, channel.ChannelName), true);
+                userLeftMessage.LogToConsole();
+
+                channel.CacheMessage(userLeftMessage);
+
                 if (channel.UserList.IsEmpty && channel != OpenWall)
                 {
                     ChatChannel channelToRemove;
@@ -174,36 +189,59 @@ namespace bwoah_srv.Server
                     return;
                 }
 
-                NetworkMessage networkMessage = new NetworkMessage(channel.GetChannelData());
-                channel.SendDataToAllUsers(networkMessage.ByteMessage);
+                NetworkMessage networkMessage = new NetworkMessage(userLeftMessage.GetChatMessage());
 
-                Message userLeftMessage = new Message(channel, userToRemove, string.Format("{0} left {1}", userToRemove.Nickname, channel.ChannelName), true);
-                userLeftMessage.LogToConsole();
-
-                channel.CacheMessage(userLeftMessage);
-
-                networkMessage = new NetworkMessage(userLeftMessage.GetChatMessage());
-                channel.SendDataToAllUsers(networkMessage.ByteMessage);
+                _channelList[channel.ChannelId].SendDataToAllUsers(networkMessage.ByteMessage);
             }
         }
 
         private void HandleChannelData(AData data, Socket socket)
         {
-            ChannelData channelData = (ChannelData)data; 
+            ChannelData channelData = (ChannelData)data;
+            
+            if (_channelList.Keys.Contains(channelData.ChannelId) && channelData.ChannelId != 0)
+            {
+                _channelList[channelData.ChannelId].ChannelName = channelData.ChannelName;
 
-            if (channelData.ChannelId == 0)
+                KeyValuePair<Socket, ChatUser>[] usersToRemovePairs = _channelList[channelData.ChannelId].UserList.Where(keyValuePair => !channelData.UserNicknames.Contains(keyValuePair.Value.Nickname)).ToArray();
+
+                String[] usersToAddNames = channelData.UserNicknames.Where(nickname => !_channelList[channelData.ChannelId].UserList.Select(keyValuePair => keyValuePair.Value.Nickname).Contains(nickname)).ToArray();
+
+                KeyValuePair<Socket, ChatUser>[] usersToAddPairs = OpenWall.UserList.Where(keyValuePair => usersToAddNames.Contains(keyValuePair.Value.Nickname)).ToArray();
+
+                foreach (KeyValuePair<Socket, ChatUser> keyValuePair in usersToRemovePairs)
+                {
+                    RemoveUserFromChannel(keyValuePair.Key, _channelList[channelData.ChannelId]);
+                }
+
+                foreach (KeyValuePair<Socket, ChatUser> keyValuePair in usersToAddPairs)
+                {
+                    AddUserToChannel(keyValuePair.Key, keyValuePair.Value, _channelList[channelData.ChannelId]);
+                }
+
+                NetworkMessage networkMessage = new NetworkMessage(_channelList[channelData.ChannelId].GetChannelData());
+                _channelList[channelData.ChannelId].SendDataToAllUsers(networkMessage.ByteMessage);
+            }
+            else
             {
                 ConcurrentDictionary<Socket, ChatUser> newChannelUsers = new ConcurrentDictionary<Socket, ChatUser>();
 
                 int channelIndex = NextChannelIndex;
 
-                _channelList.TryAdd(channelIndex, new ChatChannel(_server, channelIndex,channelData.ChannelName, newChannelUsers, OpenWall.UserList[socket]));
+                _channelList.TryAdd(channelIndex, new ChatChannel(_server, channelIndex, channelData.ChannelName, newChannelUsers, OpenWall.UserList[socket]));
 
                 foreach (string nickname in channelData.UserNicknames)
                 {
-                    KeyValuePair<Socket, ChatUser> userPair = OpenWall.UserList.Where(keyValuePair => keyValuePair.Value.Nickname == nickname).ToArray()[0];
-                    AddUserToChannel(userPair.Key, userPair.Value, _channelList[channelIndex]);
+                    try
+                    {
+                        KeyValuePair<Socket, ChatUser> userPair = OpenWall.UserList.Where(keyValuePair => keyValuePair.Value.Nickname == nickname).ToArray()[0];
+                        AddUserToChannel(userPair.Key, userPair.Value, _channelList[channelIndex]);
+                    }
+                    catch { };
                 }
+
+                NetworkMessage networkMessage = new NetworkMessage(_channelList[channelIndex].GetChannelData());
+                _channelList[channelIndex].SendDataToAllUsers(networkMessage.ByteMessage);
             }
         }
 
